@@ -29,8 +29,9 @@ resource "proxmox_virtual_environment_container" "this" {
   }
 
   network_interface {
-    name    = "eth0"
-    bridge  = var.bridge
+    name   = "eth0"
+    bridge = var.bridge
+
     ipv4 {
       address = var.ip
     }
@@ -41,5 +42,5 @@ resource "proxmox_virtual_environment_container" "this" {
   }
 
   start_on_boot = true
-  start         = true
+  started       = true
 }
