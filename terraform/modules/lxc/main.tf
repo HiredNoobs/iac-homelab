@@ -1,26 +1,45 @@
-resource "proxmox_lxc" "this" {
-  vmid       = var.vmid
-  hostname   = var.hostname
-  ostemplate = var.ostemplate
+terraform {
+  required_providers {
+    proxmox = {
+      source = "bpg/proxmox"
+    }
+  }
+}
 
-  cores  = var.cores
-  memory = var.memory
+resource "proxmox_virtual_environment_container" "this" {
+  node_name = var.node
+  vm_id     = var.vmid
+  hostname  = var.hostname
 
-  rootfs {
-    storage = var.storage
-    size    = var.disk
+  operating_system {
+    template_file_id = var.ostemplate
   }
 
-  network {
-    name   = "eth0"
-    bridge = var.bridge
-    ip     = var.ip
+  cpu {
+    cores = var.cores
   }
 
-  start  = true
-  onboot = true
+  memory {
+    dedicated = var.memory
+  }
+
+  disk {
+    datastore_id = var.storage
+    size         = var.disk
+  }
+
+  network_interface {
+    name    = "eth0"
+    bridge  = var.bridge
+    ipv4 {
+      address = var.ip
+    }
+  }
 
   features {
     nesting = var.nesting
   }
+
+  start_on_boot = true
+  start         = true
 }

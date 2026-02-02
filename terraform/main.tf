@@ -2,21 +2,24 @@ terraform {
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
-      version = "~> 0.94.0"
+      version = "0.94.0"
     }
   }
 }
 
 provider "proxmox" {
-  pm_api_url      = "https://proxmox.hirednoobs.online/api2/json"
-  pm_user         = var.pm_user
-  pm_password     = var.pm_password
-  pm_tls_insecure = true
+  endpoint = "https://proxmox.hirednoobs.online/api2/json"
+  username = var.pm_user
+  password = var.pm_password
+  insecure = true
 }
-
 
 module "lxc" {
   source = "./modules/lxc"
+
+  providers = {
+    proxmox = proxmox
+  }
 
   for_each = var.nodes
 
