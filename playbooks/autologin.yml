@@ -1,0 +1,25 @@
+---
+- hosts: all
+  become: true
+  tasks:
+    - name: Ensure autologin directory exists
+      file:
+        path: /etc/systemd/system/container-getty@1.service.d
+        state: directory
+        mode: '0755'
+
+    - name: Enable autologin on tty1
+      copy:
+        dest: /etc/systemd/system/container-getty@1.service.d/override.conf
+        content: |
+          [Service]
+          ExecStart=
+          ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
+
+    - name: Reload systemd
+      command: systemctl daemon-reload
+
+    - name: Restart getty
+      systemd:
+        name: container-getty@1.service
+        state: restarted

@@ -6,6 +6,9 @@ nodes = {
     memory   = 4096
     disk     = 20
     ip       = "dhcp"
+
+    env      = "development"
+    stack    = "misc"
   }
 
   rsyslog001 = {
@@ -15,6 +18,9 @@ nodes = {
     memory   = 4096
     disk     = 10
     ip       = "dhcp"
+
+    env      = "production"
+    stack    = "rsyslog"
   }
 
   rsyslog002 = {
@@ -24,5 +30,8 @@ nodes = {
     memory   = 4096
     disk     = 10
     ip       = "dhcp"
+
+    env      = "production"
+    stack    = "rsyslog"
   }
 }

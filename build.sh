@@ -21,5 +21,6 @@ terraform apply
 
 cd ../playbooks
 
-ansible-playbook -i inventory.yml keepalived.yml
-ansible-playbook -i inventory.yml swarm.yml
+ansible-playbook -i inventory.generated.yml autologin.yml
+ansible-playbook -i inventory.generated.yml keepalived.yml
+ansible-playbook -i inventory.generated.yml swarm.yml
