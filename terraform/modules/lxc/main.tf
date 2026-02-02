@@ -6,10 +6,19 @@ terraform {
   }
 }
 
-resource "proxmox_virtual_environment_container" "this" {
+resource "proxmox_virtual_environment_lxc" "this" {
   node_name = var.node
   vm_id     = var.vmid
-  hostname  = var.hostname
+
+  initialization {
+    hostname = var.hostname
+
+    ip_config {
+      ipv4 {
+        address = var.ip
+      }
+    }
+  }
 
   operating_system {
     template_file_id = var.ostemplate
@@ -28,13 +37,9 @@ resource "proxmox_virtual_environment_container" "this" {
     size         = var.disk
   }
 
-  network_interface {
+  network {
     name   = "eth0"
     bridge = var.bridge
-
-    ipv4 {
-      address = var.ip
-    }
   }
 
   features {
