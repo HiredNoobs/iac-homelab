@@ -14,6 +14,13 @@ provider "proxmox" {
   insecure = true
 }
 
+resource "random_password" "container_password" {
+  for_each = var.nodes
+
+  length  = 20
+  special = true
+}
+
 module "lxc" {
   source = "./modules/lxc"
 
@@ -27,6 +34,7 @@ module "lxc" {
   vmid       = each.value.vmid
   hostname   = each.value.hostname
   ostemplate = var.ostemplate
+  root_password = random_password.container_password[each.key].result
 
   cores   = each.value.cores
   memory  = each.value.memory

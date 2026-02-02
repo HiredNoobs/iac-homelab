@@ -6,7 +6,7 @@ terraform init -upgrade
 terraform validate
 terraform plan
 
-echo "Apply Terraform? [Y/N]"
+echo "Apply Terraform? [y/N]"
 read -r CONFIRM
 
 if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then

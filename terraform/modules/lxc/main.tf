@@ -10,8 +10,15 @@ resource "proxmox_virtual_environment_container" "this" {
   node_name = var.node
   vm_id     = var.vmid
 
+  unprivileged = true
+
   initialization {
     hostname = var.hostname
+
+    user_account {
+      username = "root"
+      password = var.root_password
+    }
 
     ip_config {
       ipv4 {
