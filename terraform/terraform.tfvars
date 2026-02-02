@@ -4,7 +4,7 @@ nodes = {
     hostname = "atlas"
     cores    = 2
     memory   = 4096
-    disk     = "20G"
+    disk     = 20
     ip       = "dhcp"
   }
 
@@ -13,7 +13,7 @@ nodes = {
     hostname = "prod-rsyslog001"
     cores    = 2
     memory   = 4096
-    disk     = "10G"
+    disk     = 10
     ip       = "dhcp"
   }
 
@@ -22,7 +22,7 @@ nodes = {
     hostname = "prod-rsyslog002"
     cores    = 2
     memory   = 4096
-    disk     = "10G"
+    disk     = 10
     ip       = "dhcp"
   }
 }
