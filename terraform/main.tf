@@ -34,6 +34,7 @@ module "lxc" {
   vmid       = each.value.vmid
   hostname   = each.value.hostname
   ostemplate = var.ostemplate
+  ostype     = var.ostype
   root_password = random_password.container_password[each.key].result
 
   cores   = each.value.cores
@@ -48,6 +49,7 @@ resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/templates/inventory.tpl", {
     nodes     = var.nodes
     passwords = random_password.container_password
+    ips       = { for k, v in module.lxc : k => v.ipv4 }
   })
 
   filename = "${path.module}/../playbooks/inventory.generated.yml"
