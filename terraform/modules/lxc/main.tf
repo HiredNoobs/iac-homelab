@@ -16,6 +16,7 @@ resource "proxmox_virtual_environment_container" "this" {
     hostname = var.hostname
 
     user_account {
+      keys = [file("~/.ssh/id_rsa.pub")]
       password = var.root_password
     }
 
