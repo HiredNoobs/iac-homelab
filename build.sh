@@ -2,7 +2,7 @@
 
 cd terraform
 
-terraform init
+terraform init -upgrade
 terraform validate
 terraform plan
 

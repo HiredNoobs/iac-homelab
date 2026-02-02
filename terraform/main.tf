@@ -1,3 +1,12 @@
+terraform {
+  required_providers {
+    proxmox = {
+      source  = "bpg/proxmox"
+      version = "~> 0.94.0"
+    }
+  }
+}
+
 provider "proxmox" {
   pm_api_url      = "https://proxmox.hirednoobs.online/api2/json"
   pm_user         = var.pm_user
