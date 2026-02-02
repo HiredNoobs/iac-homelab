@@ -1,2 +1,5 @@
 keepalived_role: "BACKUP"
 keepalived_priority: 100
+
+swarm_cluster: "production.core"
+swarm_role: "manager"

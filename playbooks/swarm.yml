@@ -1,0 +1,25 @@
+- hosts: all
+  gather_facts: false
+  tasks:
+    - name: Group all docker hosts
+      group_by:
+        key: "docker_nodes"
+      when: swarm_role is defined
+
+- hosts: docker_nodes
+  become: yes
+  roles:
+    - docker
+
+- hosts: docker_nodes
+  become: yes
+  tasks:
+    - name: Group managers
+      group_by:
+        key: "{{ swarm_cluster }}_managers"
+      when: swarm_role == "manager"
+
+- hosts: docker_nodes
+  become: yes
+  roles:
+    - swarm

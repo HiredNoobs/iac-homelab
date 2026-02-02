@@ -1,0 +1,2 @@
+swarm_cluster: "development.core"
+swarm_role: "manager"

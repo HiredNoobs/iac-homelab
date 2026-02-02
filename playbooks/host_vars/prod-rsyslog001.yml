@@ -1,2 +1,5 @@
 keepalived_role: "MASTER"
 keepalived_priority: 150
+
+swarm_cluster: "production.core"
+swarm_role: "manager"
