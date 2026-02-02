@@ -5,7 +5,7 @@ nodes = {
     cores    = 2
     memory   = 4096
     disk     = 20
-    ip       = "dhcp"
+    ip       = "192.168.50.201/24"
 
     env      = "development"
     stack    = "misc"
@@ -17,7 +17,7 @@ nodes = {
     cores    = 2
     memory   = 4096
     disk     = 10
-    ip       = "dhcp"
+    ip       = "192.168.50.202/24"
 
     env      = "production"
     stack    = "rsyslog"
@@ -29,7 +29,7 @@ nodes = {
     cores    = 2
     memory   = 4096
     disk     = 10
-    ip       = "dhcp"
+    ip       = "192.168.50.203/24"
 
     env      = "production"
     stack    = "rsyslog"
