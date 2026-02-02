@@ -6,7 +6,7 @@ terraform {
   }
 }
 
-resource "proxmox_virtual_environment_lxc" "this" {
+resource "proxmox_virtual_environment_container" "this" {
   node_name = var.node
   vm_id     = var.vmid
 
@@ -37,7 +37,7 @@ resource "proxmox_virtual_environment_lxc" "this" {
     size         = var.disk
   }
 
-  network {
+  network_interface {
     name   = "eth0"
     bridge = var.bridge
   }
