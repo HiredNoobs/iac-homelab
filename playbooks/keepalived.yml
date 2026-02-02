@@ -1,0 +1,4 @@
+- hosts: rsyslog
+  become: yes
+  roles:
+    - keepalived

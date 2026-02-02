@@ -1,0 +1,11 @@
+all:
+  children:
+    production:
+      children:
+        rsyslog:
+          hosts:
+            prod-rsyslog001:
+            prod-rsyslog002:
+    development:
+      hosts:
+        atlas:
