@@ -23,6 +23,7 @@ module "lxc" {
 
   for_each = var.nodes
 
+  node       = "homelab"
   vmid       = each.value.vmid
   hostname   = each.value.hostname
   ostemplate = var.ostemplate
