@@ -14,10 +14,13 @@ variable "nodes" {
     hostname = string
     cores    = number
     memory   = number
-    disk     = string
+    disk     = number
     ip       = string
+    env      = string
+    stack    = string
   }))
 }
+
 
 variable "ostemplate" {
   default = "local:vztmpl/debian-12-standard_12.12-1_amd64.tar.zst"
