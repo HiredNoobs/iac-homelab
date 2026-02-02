@@ -16,7 +16,6 @@ resource "proxmox_virtual_environment_container" "this" {
     hostname = var.hostname
 
     user_account {
-      username = "root"
       password = var.root_password
     }
 
