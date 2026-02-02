@@ -26,6 +26,10 @@ variable "ostemplate" {
   default = "local:vztmpl/debian-12-standard_12.12-1_amd64.tar.zst"
 }
 
+variable "ostype" {
+  default = "debian"
+}
+
 variable "storage" {
   default = "local-lvm"
 }

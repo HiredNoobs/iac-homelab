@@ -1,6 +1,7 @@
 variable "vmid" {}
 variable "hostname" {}
 variable "ostemplate" {}
+variable "ostype" {}
 variable "root_password" {}
 
 variable "cores" {}
