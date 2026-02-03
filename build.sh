@@ -17,12 +17,16 @@ else
   exit 0
 fi
 
-# Not sure if this is necessary but it won't hurt.
-echo "Sleeping for 10s"
-sleep 10
+echo "Sleeping for 30s"
+sleep 30
 
 cd ../playbooks
 
+echo "Configuring autologin..."
 ansible-playbook -i inventory.generated.yml autologin.yml
+
+echo "Configuring keepalived..."
 ansible-playbook -i inventory.generated.yml keepalived.yml
+
+echo "Configuring Docker Swarms..."
 ansible-playbook -i inventory.generated.yml swarm.yml
