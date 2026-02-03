@@ -11,13 +11,11 @@ read -r CONFIRM
 
 if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
   echo "Applying terraform changes"
-  terraform apply
+  terraform apply -auto-approve
 else
   echo "Not applying Terraform changes and skipping ansible config"
   exit 0
 fi
-
-terraform apply
 
 # Not sure if this is necessary but it won't hurt.
 echo "Sleeping for 10s"
