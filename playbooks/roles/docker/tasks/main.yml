@@ -1,5 +1,5 @@
 - name: Install required packages
-  apt:
+  ansible.builtin.apt:
     name:
       - ca-certificates
       - curl
@@ -7,18 +7,19 @@
     state: present
     update_cache: yes
 
-- name: Add Docker GPG key
-  apt_key:
+- name: Add Docker GPG key (modern keyring method)
+  ansible.builtin.get_url:
     url: https://download.docker.com/linux/debian/gpg
-    state: present
+    dest: /usr/share/keyrings/docker.gpg
+    mode: '0644'
 
 - name: Add Docker repository
-  apt_repository:
-    repo: "deb [arch=amd64] https://download.docker.com/linux/debian bookworm stable"
+  ansible.builtin.apt_repository:
+    repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian trixie stable"
     state: present
 
 - name: Install Docker
-  apt:
+  ansible.builtin.apt:
     name:
       - docker-ce
       - docker-ce-cli
@@ -27,7 +28,7 @@
     update_cache: yes
 
 - name: Enable Docker
-  service:
+  ansible.builtin.service:
     name: docker
     state: started
     enabled: yes
