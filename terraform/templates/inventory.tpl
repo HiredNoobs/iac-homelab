@@ -8,7 +8,7 @@ all:
           hosts:
 %{ for name, cfg in nodes ~}
 %{ if cfg.env == env && cfg.stack == stack ~}
-            ${name}:
+            ${cfg.hostname}:
               ansible_host: ${split("/", cfg.ip)[0]}
               ansible_user: root
               ansible_password: ${passwords[name].result}
