@@ -1,9 +1,11 @@
 - name: Check if node is already part of a swarm
-  command: >
-    docker info --format '{{ .Swarm.LocalNodeState }}'
+  vars:
+    swarm_state: "{{ '{{ .Swarm.LocalNodeState }}' }}"
+  command: docker info --format {{ swarm_state }}
   register: swarm_state
   changed_when: false
   failed_when: false
+
 
 - name: Initialize swarm on first manager of each cluster
   command: docker swarm init --advertise-addr {{ ansible_host }}
