@@ -19,6 +19,10 @@ fi
 
 terraform apply
 
+# Not sure if this is necessary but it won't hurt.
+echo "Sleeping for 10s"
+sleep 10
+
 cd ../playbooks
 
 ansible-playbook -i inventory.generated.yml autologin.yml
