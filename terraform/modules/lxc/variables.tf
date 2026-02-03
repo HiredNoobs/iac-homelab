@@ -10,6 +10,7 @@ variable "disk" {}
 variable "storage" {}
 variable "bridge" {}
 variable "ip" {}
+variable "gateway" {}
 variable "nesting" {
   default = true
 }

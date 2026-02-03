@@ -43,6 +43,7 @@ module "lxc" {
   storage = var.storage
   bridge  = var.bridge
   ip      = each.value.ip
+  gateway = var.gateway
 }
 
 resource "local_file" "ansible_inventory" {

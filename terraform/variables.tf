@@ -23,17 +23,26 @@ variable "nodes" {
 
 
 variable "ostemplate" {
+  type = string
   default = "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst"
 }
 
 variable "ostype" {
+  type = string
   default = "debian"
 }
 
 variable "storage" {
+  type = string
   default = "local-lvm"
 }
 
 variable "bridge" {
+  type = string
   default = "vmbr0"
+}
+
+variable "gateway" {
+  type = string
+  default = "192.168.50.11"
 }

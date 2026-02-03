@@ -23,6 +23,7 @@ resource "proxmox_virtual_environment_container" "this" {
     ip_config {
       ipv4 {
         address = var.ip
+        gateway = var.gateway
       }
     }
   }
