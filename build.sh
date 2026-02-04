@@ -25,6 +25,12 @@ cd ../playbooks
 echo "Configuring autologin..."
 ansible-playbook -i inventory.generated.yml autologin.yml
 
+echo "Patching host..."
+ansible-playbook -i inventory.generated.yml patch.yml
+
+echo "Configuring user and default packages..."
+ansible-playbook -i inventory.generated.yml movein.yml
+
 echo "Configuring keepalived..."
 ansible-playbook -i inventory.generated.yml keepalived.yml
 

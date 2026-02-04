@@ -48,6 +48,13 @@ Install ansible:
 sudo pacman -S ansible
 ```
 
+Setup env vars:
+
+```bash
+# Default password for user that is created on LXCs.
+$ export MOVEIN_PASSWORD=""
+```
+
 ```bash
 $ cd playbooks
 

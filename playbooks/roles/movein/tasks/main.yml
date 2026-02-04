@@ -1,0 +1,19 @@
+# systemctl is missing from the template...
+- name: Install systemctl tools
+  apt:
+    name:
+      - systemd-sysv
+      - curl
+    state: present
+  become: yes
+
+- name: Run movein.sh bootstrap script
+  become: yes
+  environment:
+    MOVEIN_PASSWORD: "{{ lookup('env', 'MOVEIN_PASSWORD') }}"
+  shell: |
+    curl -L https://raw.githubusercontent.com/HiredNoobs/tools-bin/refs/heads/master/bin/movein.sh \
+      | bash -s {{ movein_username }} "${MOVEIN_PASSWORD}"
+  args:
+    executable: /bin/bash
+  no_log: true
