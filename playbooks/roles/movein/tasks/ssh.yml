@@ -1,0 +1,38 @@
+- name: Ensure .ssh directory exists
+  file:
+    path: "/home/{{ movein_username }}/.ssh"
+    state: directory
+    owner: "{{ movein_username }}"
+    group: "{{ movein_username }}"
+    mode: '0700'
+  become: yes
+  when: inventory_hostname == "atlas"
+
+- name: Generate SSH keypair
+  become: yes
+  user:
+    name: "{{ movein_username }}"
+    generate_ssh_key: yes
+    ssh_key_bits: 4096
+    ssh_key_file: ".ssh/id_rsa"
+  when: inventory_hostname == "atlas"
+
+- name: Read generated public key
+  become: yes
+  slurp:
+    src: "/home/{{ movein_username }}/.ssh/id_rsa.pub"
+  register: movein_pubkey_raw
+  when: inventory_hostname == "atlas"
+
+- name: Set fact for public key
+  set_fact:
+    movein_pubkey: "{{ movein_pubkey_raw.content | b64decode }}"
+  when: inventory_hostname == "atlas"
+
+- name: Install atlas public key on all other hosts
+  become: yes
+  authorized_key:
+    user: "{{ movein_username }}"
+    key: "{{ hostvars['atlas'].movein_pubkey }}"
+    state: present
+  when: inventory_hostname != "atlas"
