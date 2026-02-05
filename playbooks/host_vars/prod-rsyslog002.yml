@@ -3,3 +3,4 @@ keepalived_priority: 100
 
 swarm_cluster: "production.core"
 swarm_role: "manager"
+swarm_labels: "rsyslog_core_rsyslog"

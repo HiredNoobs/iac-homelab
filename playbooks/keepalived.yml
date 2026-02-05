@@ -1,3 +1,4 @@
+---
 - hosts: rsyslog
   become: yes
   roles:

@@ -1,0 +1,35 @@
+- name: Convert swarm_labels string into list
+  set_fact:
+    desired_labels: "{{ swarm_labels.split() | list }}"
+  when: swarm_labels is defined
+
+- name: Get current labels for this node
+  command: docker node inspect {{ inventory_hostname }} --format '{{ "{{ json .Spec.Labels }}" }}'
+  register: node_labels_raw
+  delegate_to: "{{ groups[swarm_cluster + '_managers'][0] }}"
+  run_once: false
+
+- name: Parse current labels
+  set_fact:
+    current_labels: "{{ node_labels_raw.stdout | from_json if node_labels_raw.stdout else {} }}"
+
+- name: Determine labels to add
+  set_fact:
+    labels_to_add: "{{ desired_labels | difference(current_labels.keys()) }}"
+
+- name: Determine labels to remove
+  set_fact:
+    labels_to_remove: "{{ current_labels.keys() | difference(desired_labels) }}"
+
+- name: Apply label changes
+  command: >
+    docker node update
+    {% for label in labels_to_add %}
+      --label-add {{ label }}=1
+    {% endfor %}
+    {% for label in labels_to_remove %}
+      --label-rm {{ label }}
+    {% endfor %}
+    {{ inventory_hostname }}
+  delegate_to: "{{ groups[swarm_cluster + '_managers'][0] }}"
+  when: labels_to_add | length > 0 or labels_to_remove | length > 0
