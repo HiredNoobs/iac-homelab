@@ -17,8 +17,8 @@ else
   exit 0
 fi
 
-echo "Sleeping for 30s"
-sleep 30
+echo "Sleeping for 60s"
+sleep 60
 
 cd ../playbooks
 
