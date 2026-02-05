@@ -17,8 +17,9 @@ provider "proxmox" {
 resource "random_password" "container_password" {
   for_each = var.nodes
 
-  length  = 20
+  length  = 32
   special = true
+  override_special = "!@#$%^&*()-_=+[]:,.?"
 }
 
 module "lxc" {
