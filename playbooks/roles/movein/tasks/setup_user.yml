@@ -1,9 +1,9 @@
-# systemctl is missing from the template...
-- name: Install systemctl tools
+- name: Install globally required packages
   apt:
     name:
-      - systemd-sysv
+      - systemd-sysv # systemctl is missing from the template
       - curl
+      - jq
     state: present
 
 - name: Run movein.sh script
