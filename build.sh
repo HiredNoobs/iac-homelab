@@ -34,7 +34,7 @@ function run_playbooks {
   cd "$HERE/playbooks" || exit 1
   for playbook in "$@"; do
     echo "Running $playbook..."
-    ansible-playbook -i inventory.generated.yml "$playbook" | {
+    ansible-playbook -i inventory.generated.yml "$playbook" || {
       echo "$playbook failed, aborting."
       exit 1
     }
