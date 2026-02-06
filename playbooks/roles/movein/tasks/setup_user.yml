@@ -17,8 +17,8 @@
   no_log: true
 
 - name: Setup bash, vim, and tmux on jumpbox
-  become_user: "{{ movein_user }}"
-  command: "/home/{{ movein_user }}/tools-bin/bin/setup bash vim tmux"
+  become_user: "{{ movein_username }}"
+  command: "/home/{{ movein_username }}/tools-bin/bin/setup bash vim tmux"
   when: inventory_hostname == "atlas"
 
 - name: Add user to docker group
