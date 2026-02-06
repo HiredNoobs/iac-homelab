@@ -4,6 +4,8 @@
       - systemd-sysv # systemctl is missing from the template
       - curl
       - jq
+      - zip
+      - tree
     state: present
 
 - name: Ensure system locale is set to C.UTF-8
