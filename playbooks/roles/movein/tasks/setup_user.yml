@@ -5,10 +5,8 @@
       - systemd-sysv
       - curl
     state: present
-  become: yes
 
 - name: Run movein.sh script
-  become: yes
   environment:
     MOVEIN_PASSWORD: "{{ lookup('env', 'MOVEIN_PASSWORD') }}"
   shell: |
@@ -18,8 +16,12 @@
     executable: /bin/bash
   no_log: true
 
+- name: Setup bash, vim, and tmux on jumpbox
+  become_user: "{{ movein_user }}"
+  command: "/home/{{ movein_user }}/tools-bin/bin/setup bash vim tmux"
+  when: inventory_hostname == "atlas"
+
 - name: Add user to docker group
-  become: yes
   user:
     name: "{{ movein_username }}"
     groups: docker

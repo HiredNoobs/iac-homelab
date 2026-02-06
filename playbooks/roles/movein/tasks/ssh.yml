@@ -1,11 +1,11 @@
 - name: Ensure .ssh directory exists
+  become: yes
   file:
     path: "/home/{{ movein_username }}/.ssh"
     state: directory
     owner: "{{ movein_username }}"
     group: "{{ movein_username }}"
     mode: '0700'
-  become: yes
   when: inventory_hostname == "atlas"
 
 - name: Generate SSH keypair
