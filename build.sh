@@ -1,38 +1,57 @@
 #!/usr/bin/env bash
 
-cd terraform
+THIS=$(realpath "$0")
+HERE=$(dirname "$THIS")
 
-terraform init -upgrade
-terraform validate
-terraform plan
+# -----------------------------------------------------
+# Functions
+# -----------------------------------------------------
 
-echo "Apply Terraform? [y/N]"
-read -r CONFIRM
+function run_terraform {
+  local confirm
 
-if [[ "$CONFIRM" =~ ^[Yy]$ ]]; then
-  echo "Applying terraform changes"
-  terraform apply -auto-approve
-else
-  echo "Not applying Terraform changes and skipping ansible config"
-  exit 0
-fi
+  cd "$HERE/terraform" || exit 1
 
-cd ../playbooks
+  terraform init -upgrade
+  terraform validate
+  terraform plan
 
-echo "Waiting for LXCs..."
-ansible-playbook -i inventory.generated.yml readycheck.yml
+  echo "Apply Terraform? [y/N]"
+  read -r confirm
 
-echo "Configuring autologin..."
-ansible-playbook -i inventory.generated.yml autologin.yml
+  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    echo "Applying terraform changes"
+    terraform apply -auto-approve
+  else
+    echo "Skipping build."
+    exit 0
+  fi
 
-echo "Patching host..."
-ansible-playbook -i inventory.generated.yml patch.yml
+  cd "$HERE"
+}
 
-echo "Configuring Docker Swarms..."
-ansible-playbook -i inventory.generated.yml swarm.yml
+function run_playbooks {
+  cd "$HERE/playbooks" || exit 1
+  for playbook in "$@"; do
+    echo "Running $playbook..."
+    ansible-playbook -i inventory.generated.yml "$playbook" | {
+      echo "$playbook failed, aborting."
+      exit 1
+    }
+  done
+  cd "$HERE"
+}
 
-echo "Configuring keepalived..."
-ansible-playbook -i inventory.generated.yml keepalived.yml
+# -----------------------------------------------------
+# Main
+# -----------------------------------------------------
 
-echo "Configuring user and default packages..."
-ansible-playbook -i inventory.generated.yml movein.yml
+run_terraform
+
+run_playbooks \
+  readycheck.yml \
+  autologin.yml \
+  patch.yml \
+  swarm.yml \
+  keepalived.yml \
+  movein.yml
