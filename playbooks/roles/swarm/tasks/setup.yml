@@ -1,7 +1,5 @@
 - name: Check if node is already part of a swarm
-  vars:
-    swarm_state_format: "{{ '{{ .Swarm.LocalNodeState }}' }}"
-  command: docker info --format {{ swarm_state_format }}
+  command: docker info --format '{{ '{{' }} .Swarm.LocalNodeState {{ '}}' }}'
   register: swarm_state
   changed_when: false
   failed_when: false
