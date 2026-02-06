@@ -27,7 +27,7 @@ function run_terraform {
     exit 0
   fi
 
-  cd "$HERE"
+  cd "$HERE" || exit 1
 }
 
 function run_playbooks {
@@ -39,7 +39,7 @@ function run_playbooks {
       exit 1
     }
   done
-  cd "$HERE"
+  cd "$HERE" || exit 1
 }
 
 # -----------------------------------------------------
