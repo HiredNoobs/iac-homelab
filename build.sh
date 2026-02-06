@@ -21,7 +21,7 @@ function run_terraform {
 
   if [[ "$confirm" =~ ^[Yy]$ ]]; then
     echo "Applying terraform changes"
-    terraform apply -auto-approve
+    terraform apply -auto-approve || exit 1
   else
     echo "Skipping build."
     exit 0
