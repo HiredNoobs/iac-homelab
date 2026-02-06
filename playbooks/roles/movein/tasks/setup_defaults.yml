@@ -1,0 +1,14 @@
+- name: Install required packages
+  apt:
+    name:
+      - systemd-sysv # systemctl is missing from the template
+      - curl
+      - jq
+    state: present
+
+- name: Ensure system locale is set to C.UTF-8
+  lineinfile:
+    path: /etc/default/locale
+    regexp: '^LANG='
+    line: 'LANG="C.UTF-8"'
+    create: yes

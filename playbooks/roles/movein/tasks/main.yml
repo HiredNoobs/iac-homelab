@@ -1,3 +1,6 @@
+- name: Setup system defaults
+  import_tasks: setup_defaults.yml
+
 - name: Setup home directory and groups
   import_tasks: setup_user.yml
 

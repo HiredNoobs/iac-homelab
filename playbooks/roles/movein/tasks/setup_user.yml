@@ -1,11 +1,3 @@
-- name: Install globally required packages
-  apt:
-    name:
-      - systemd-sysv # systemctl is missing from the template
-      - curl
-      - jq
-    state: present
-
 - name: Run movein.sh script
   environment:
     MOVEIN_PASSWORD: "{{ lookup('env', 'MOVEIN_PASSWORD') }}"
