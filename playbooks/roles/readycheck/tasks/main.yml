@@ -1,0 +1,4 @@
+- name: Waiting for hosts to be ready...
+  wait_for_connection:
+    delay: 30
+    timeout: 600

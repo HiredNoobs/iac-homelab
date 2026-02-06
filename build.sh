@@ -17,10 +17,10 @@ else
   exit 0
 fi
 
-echo "Sleeping for 60s"
-sleep 60
-
 cd ../playbooks
+
+echo "Waiting for LXCs..."
+ansible-playbook -i inventory.generated.yml readycheck.yml
 
 echo "Configuring autologin..."
 ansible-playbook -i inventory.generated.yml autologin.yml
