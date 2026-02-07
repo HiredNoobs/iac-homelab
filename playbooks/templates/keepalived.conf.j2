@@ -1,4 +1,14 @@
-vrrp_instance VI_1 {
+{% if keepalived_healthcheck_enabled %}
+vrrp_script chk_service {
+    script "{{ keepalived_healthcheck_script }}"
+    interval {{ keepalived_healthcheck_interval | default(2) }}
+    timeout {{ keepalived_healthcheck_timeout | default(2) }}
+    fall {{ keepalived_healthcheck_fall | default(2) }}
+    rise {{ keepalived_healthcheck_rise | default(2) }}
+}
+{% endif %}
+
+vrrp_instance vip {
     state {{ keepalived_role }}
     interface {{ keepalived_interface }}
     virtual_router_id {{ keepalived_router_id }}
@@ -13,4 +23,10 @@ vrrp_instance VI_1 {
     virtual_ipaddress {
         {{ keepalived_vip }}
     }
+
+    {% if keepalived_healthcheck_enabled %}
+    track_script {
+        chk_service
+    }
+    {% endif %}
 }

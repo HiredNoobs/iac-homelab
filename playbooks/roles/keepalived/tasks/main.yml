@@ -10,6 +10,13 @@
     dest: /etc/keepalived/keepalived.conf
     mode: 0644
 
+- name: Deploy health check script
+  template:
+    src: "{{ keepalived_healthcheck_template }}"
+    dest: "{{ keepalived_healthcheck_script }}"
+    mode: 0755
+  when: keepalived_healthcheck_enabled
+
 - name: Enable and restart keepalived
   service:
     name: keepalived

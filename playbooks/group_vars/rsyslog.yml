@@ -1,4 +1,7 @@
 keepalived_vip: "192.168.50.200/24"
-keepalived_interface: "eth0"
 keepalived_auth_pass: "supersecretpassword12345"
 keepalived_router_id: 51
+
+keepalived_healthcheck_enabled: true
+keepalived_healthcheck_template: check_rsyslog.sh.j2
+keepalived_healthcheck_script: /etc/keepalived/scripts/check_rsyslog.sh
