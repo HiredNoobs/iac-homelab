@@ -10,6 +10,13 @@
     dest: /etc/keepalived/keepalived.conf
     mode: 0644
 
+- name: Ensure health check script directory exists
+  file:
+    path: "{{ keepalived_healthcheck_script | dirname }}"
+    state: directory
+    mode: 0755
+  when: keepalived_healthcheck_enabled | default(false)
+
 - name: Deploy health check script
   template:
     src: "{{ keepalived_healthcheck_template }}"
