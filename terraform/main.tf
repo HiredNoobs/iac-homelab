@@ -19,7 +19,7 @@ resource "random_password" "container_password" {
 
   length  = 32
   special = true
-  override_special = "&*-_+:.?"
+  override_special = "&*-_+.?"
 }
 
 module "lxc" {
