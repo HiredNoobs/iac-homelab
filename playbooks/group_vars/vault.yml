@@ -1,0 +1,7 @@
+swarm_cluster: "production.services"
+swarm_role: "manager"
+swarm_labels: "vault_services_vault"
+
+keepalived_vip: "192.168.50.203/24"
+keepalived_auth_pass: "supersecretpassword12345"
+keepalived_router_id: 52
