@@ -7,6 +7,13 @@
     mode: '0700'
   when: inventory_hostname == "atlas"
 
+- name: Install local public key on atlas
+  authorized_key:
+    user: "{{ movein_username }}"
+    key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    state: present
+  when: inventory_hostname == "atlas"
+
 - name: Generate SSH keypair
   user:
     name: "{{ movein_username }}"
@@ -36,7 +43,7 @@
 - name: Update atlas' known hosts
   known_hosts:
     path: "/home/{{ movein_username }}/.ssh/known_hosts"
-    name: "{{ hostvars[item].ansible_host | default(item) }}"
+    name: "{{ item }},{{ item }}.{{ domain_name }},{{ hostvars[item].ansible_host }}"
     key: "{{ lookup('pipe', 'ssh-keyscan -t rsa ' ~ (hostvars[item].ansible_host | default(item))) }}"
     state: present
   loop: "{{ groups['all'] }}"
