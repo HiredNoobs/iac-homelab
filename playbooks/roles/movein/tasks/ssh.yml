@@ -44,7 +44,7 @@
   known_hosts:
     path: "/home/{{ movein_username }}/.ssh/known_hosts"
     name: "{{ item }}.{{ domain_name }}"
-    key: "{{ lookup('pipe', 'ssh-keyscan -t rsa ' ~ (hostvars[item].ansible_host | default(item))) }}"
+    key: "{{ lookup('pipe', 'ssh-keyscan -t rsa ' ~ item ~ '.' ~ domain_name) }}"
     state: present
   loop: "{{ groups['all'] }}"
   when: inventory_hostname == 'atlas' and item != 'atlas'
