@@ -34,7 +34,6 @@
   when: inventory_hostname != "atlas"
 
 - name: Update atlas' known hosts
-  become_user: "{{ movein_username }}"
   known_hosts:
     path: "/home/{{ movein_username }}/.ssh/known_hosts"
     name: "{{ hostvars[item].ansible_host | default(item) }}"
@@ -42,4 +41,12 @@
     state: present
   loop: "{{ groups['all'] }}"
   when: inventory_hostname == 'atlas' and item != 'atlas'
+
+- name: Ensure known_hosts ownership is correct
+  file:
+    path: "/home/{{ movein_username }}/.ssh/known_hosts"
+    owner: "{{ movein_username }}"
+    group: "{{ movein_username }}"
+    mode: '0644'
+  when: inventory_hostname == 'atlas'
 
