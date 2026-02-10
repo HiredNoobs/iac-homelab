@@ -11,7 +11,7 @@ all:
             ${cfg.hostname}:
               ansible_host: ${split("/", cfg.ip)[0]}
               ansible_user: root
-              ansible_password: ${passwords[name].result}
+              ansible_password: '${passwords[name].result}'
 %{ endif ~}
 %{ endfor ~}
 %{ endfor ~}
