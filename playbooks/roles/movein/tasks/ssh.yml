@@ -43,7 +43,7 @@
 - name: Update atlas' known hosts
   known_hosts:
     path: "/home/{{ movein_username }}/.ssh/known_hosts"
-    name: "{{ item }},{{ item }}.{{ domain_name }},{{ hostvars[item].ansible_host }}"
+    name: "{{ item }}.{{ domain_name }}"
     key: "{{ lookup('pipe', 'ssh-keyscan -t rsa ' ~ (hostvars[item].ansible_host | default(item))) }}"
     state: present
   loop: "{{ groups['all'] }}"
