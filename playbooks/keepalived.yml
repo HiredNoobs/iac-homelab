@@ -1,6 +1,13 @@
 ---
 - hosts: all
+  gather_facts: false
+  tasks:
+    - name: Group all keepalived hosts
+      group_by:
+        key: "keepalived_nodes"
+      when: keepalived_vip is defined
+
+- hosts: keepalived_nodes
   become: yes
   roles:
     - keepalived
-  when: keepalived_vip is defined
