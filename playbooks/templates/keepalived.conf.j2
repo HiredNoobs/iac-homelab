@@ -1,8 +1,8 @@
 {% if keepalived_healthcheck_enabled %}
 vrrp_script chk_service {
     script "{{ keepalived_healthcheck_script }}"
-    interval {{ keepalived_healthcheck_interval | default(2) }}
-    timeout {{ keepalived_healthcheck_timeout | default(2) }}
+    interval {{ keepalived_healthcheck_interval | default(60) }}
+    timeout {{ keepalived_healthcheck_timeout | default(5) }}
     fall {{ keepalived_healthcheck_fall | default(2) }}
     rise {{ keepalived_healthcheck_rise | default(2) }}
 }
