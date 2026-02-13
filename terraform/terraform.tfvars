@@ -3,6 +3,8 @@ nodes = {
   atlas = {
     vmid     = 999
     hostname = "atlas"
+    tags     = ["docker", "development.core"]
+
     cores    = 2
     memory   = 4096
     disk     = 20
@@ -15,6 +17,8 @@ nodes = {
   rsyslog001 = {
     vmid     = 500
     hostname = "prod-rsyslog001"
+    tags     = ["docker", "production.core"]
+
     cores    = 1
     memory   = 1024
     disk     = 4
@@ -27,6 +31,8 @@ nodes = {
   rsyslog002 = {
     vmid     = 501
     hostname = "prod-rsyslog002"
+    tags     = ["docker", "production.core"]
+
     cores    = 1
     memory   = 1024
     disk     = 4
@@ -39,6 +45,8 @@ nodes = {
   vault001 = {
     vmid     = 502
     hostname = "prod-vault001"
+    tags     = ["docker", "production.services"]
+
     cores    = 1
     memory   = 1024
     disk     = 4
@@ -51,6 +59,8 @@ nodes = {
   vault002 = {
     vmid     = 503
     hostname = "prod-vault002"
+    tags     = ["docker", "production.services"]
+
     cores    = 1
     memory   = 1024
     disk     = 4

@@ -1,5 +1,6 @@
 variable "vmid" {}
 variable "hostname" {}
+variable "tags" {}
 variable "ostemplate" {}
 variable "ostype" {}
 variable "root_password" {}
