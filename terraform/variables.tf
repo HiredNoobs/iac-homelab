@@ -12,6 +12,7 @@ variable "nodes" {
   type = map(object({
     vmid     = number
     hostname = string
+    tags     = list(string)
     cores    = number
     memory   = number
     disk     = number
