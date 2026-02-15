@@ -34,6 +34,8 @@ module "lxc" {
   node       = "homelab"
   vmid       = each.value.vmid
   hostname   = each.value.hostname
+  tags       = each.value.tags
+
   ostemplate = var.ostemplate
   ostype     = var.ostype
   root_password = random_password.container_password[each.key].result
