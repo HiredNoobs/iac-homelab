@@ -1,0 +1,3 @@
+swarm_cluster: "production.core"
+swarm_role: "manager"
+swarm_labels: "kafka_core_broker kafka_core_controller"
