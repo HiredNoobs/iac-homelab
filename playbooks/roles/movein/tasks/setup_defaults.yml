@@ -8,6 +8,13 @@
       - tree
     state: present
 
+- name: Install required packages on dev
+  apt:
+    name:
+      - default-jdk
+    state: present
+  when: inventory_hostname == "atlas"
+
 - name: Ensure system locale is set to C.UTF-8
   lineinfile:
     path: /etc/default/locale
