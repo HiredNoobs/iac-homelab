@@ -1,20 +1,22 @@
 - name: Update apt cache
   apt:
     update_cache: yes
-  register: apt_update
 
 - name: Upgrade all packages
   apt:
     upgrade: dist
-  register: apt_upgrade
 
 - name: Autoremove unused packages
   apt:
     autoremove: yes
-  register: apt_autoremove
 
-- name: Reboot if any changes occurred
+- name: Check if reboot is required
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_required
+
+- name: Reboot if required
   reboot:
     msg: "Reboot initiated by Ansible patching role"
     reboot_timeout: 600
-  when: apt_update.changed or apt_upgrade.changed or apt_autoremove.changed
+  when: reboot_required.stat.exists
