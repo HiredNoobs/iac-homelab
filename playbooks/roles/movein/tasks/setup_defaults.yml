@@ -2,16 +2,17 @@
   apt:
     name:
       - systemd-sysv # systemctl is missing from the template
-      - curl
-      - jq
-      - zip
-      - tree
     state: present
 
 - name: Install required packages on dev
   apt:
     name:
       - default-jdk
+      - curl
+      - jq
+      - zip
+      - tree
+      - yq
     state: present
   when: inventory_hostname == "atlas"
 
