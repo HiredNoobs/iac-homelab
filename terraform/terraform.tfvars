@@ -105,6 +105,22 @@ nodes = {
     stack    = "redis"
   }
 
+  # Leaving VMID / IP space for a Redis cluster...
+
+  contentbot001 = {
+    vmid     = 508
+    hostname = "prod-contentbot001"
+    tags     = ["docker", "production.core"]
+
+    cores    = 1
+    memory   = 1024
+    disk     = 10
+    ip       = "192.168.50.212/24"
+
+    env      = "production"
+    stack    = "contentbot"
+  }
+
   # -----------------------------------------------------
   # Prod Services (600 - 699)
   # -----------------------------------------------------
