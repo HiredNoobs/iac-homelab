@@ -107,7 +107,7 @@ nodes = {
 
   # Leaving VMID / IP space for a Redis cluster...
 
-  contentbot001 = {
+  rabbitmq001 = {
     vmid     = 508
     hostname = "prod-contentbot001"
     tags     = ["docker", "production.core"]
@@ -116,6 +116,22 @@ nodes = {
     memory   = 1024
     disk     = 10
     ip       = "192.168.50.212/24"
+
+    env      = "production"
+    stack    = "rabbitmq"
+  }
+
+  # Leaving VMID / IP space for a RabbitMQ cluster...
+
+  contentbot001 = {
+    vmid     = 511
+    hostname = "prod-contentbot001"
+    tags     = ["docker", "production.core"]
+
+    cores    = 1
+    memory   = 1024
+    disk     = 10
+    ip       = "192.168.50.215/24"
 
     env      = "production"
     stack    = "contentbot"

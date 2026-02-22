@@ -1,0 +1,3 @@
+swarm_cluster: "production.core"
+swarm_role: "worker"
+swarm_labels: "rabbitmq_core_rabbitmq"
