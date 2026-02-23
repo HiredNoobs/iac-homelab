@@ -1,3 +1,3 @@
-swarm_cluster: "production.core"
+swarm_cluster: "production.services"
 swarm_role: "worker"
 swarm_labels: "grafana_services_grafana grafana_services_victorialogs"
