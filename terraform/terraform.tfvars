@@ -109,7 +109,7 @@ nodes = {
 
   rabbitmq001 = {
     vmid     = 508
-    hostname = "prod-contentbot001"
+    hostname = "prod-rabbitmq001"
     tags     = ["docker", "production.core"]
 
     cores    = 1
