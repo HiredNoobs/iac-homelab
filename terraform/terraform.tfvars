@@ -1,21 +1,16 @@
 # Note: env/stack are only used for generating the inventory for Ansible.
 nodes = {
   # -----------------------------------------------------
-  # Dev (900 - 999)
+  # Essential services (001 - )
   # -----------------------------------------------------
-  atlas = {
-    vmid     = 999
-    hostname = "atlas"
-    tags     = ["docker", "development.core"]
 
-    cores    = 2
-    memory   = 4096
-    disk     = 20
-    ip       = "192.168.50.254/24"
+  pihole001 = {}
 
-    env      = "development"
-    stack    = "misc"
-  }
+  pihole001 = {}
+
+  nginx001 = {}
+
+  nginx002 = {}
 
   # -----------------------------------------------------
   # Prod Core (500 - 599)
@@ -49,47 +44,47 @@ nodes = {
     stack    = "rsyslog"
   }
 
-  kafka001 = {
-    vmid     = 502
-    hostname = "prod-kafka001"
-    tags     = ["docker", "production.core"]
+  # kafka001 = {
+  #   vmid     = 502
+  #   hostname = "prod-kafka001"
+  #   tags     = ["docker", "production.core"]
 
-    cores    = 1
-    memory   = 1024
-    disk     = 10
-    ip       = "192.168.50.206/24"
+  #   cores    = 1
+  #   memory   = 1024
+  #   disk     = 10
+  #   ip       = "192.168.50.206/24"
 
-    env      = "production"
-    stack    = "kafka"
-  }
+  #   env      = "production"
+  #   stack    = "kafka"
+  # }
 
-  kafka002 = {
-    vmid     = 503
-    hostname = "prod-kafka002"
-    tags     = ["docker", "production.core"]
+  # kafka002 = {
+  #   vmid     = 503
+  #   hostname = "prod-kafka002"
+  #   tags     = ["docker", "production.core"]
 
-    cores    = 1
-    memory   = 1024
-    disk     = 10
-    ip       = "192.168.50.207/24"
+  #   cores    = 1
+  #   memory   = 1024
+  #   disk     = 10
+  #   ip       = "192.168.50.207/24"
 
-    env      = "production"
-    stack    = "kafka"
-  }
+  #   env      = "production"
+  #   stack    = "kafka"
+  # }
 
-  kafka003 = {
-    vmid     = 504
-    hostname = "prod-kafka003"
-    tags     = ["docker", "production.core"]
+  # kafka003 = {
+  #   vmid     = 504
+  #   hostname = "prod-kafka003"
+  #   tags     = ["docker", "production.core"]
 
-    cores    = 1
-    memory   = 1024
-    disk     = 10
-    ip       = "192.168.50.208/24"
+  #   cores    = 1
+  #   memory   = 1024
+  #   disk     = 10
+  #   ip       = "192.168.50.208/24"
 
-    env      = "production"
-    stack    = "kafka"
-  }
+  #   env      = "production"
+  #   stack    = "kafka"
+  # }
 
   redis001 = {
     vmid     = 505
@@ -167,5 +162,36 @@ nodes = {
 
     env      = "production"
     stack    = "vault"
+  }
+
+  grafana001 = {
+    vmid     = 602
+    hostname = "prod-grafana001"
+    tags     = ["docker", "production.services"]
+
+    cores    = 1
+    memory   = 4096
+    disk     = 20
+    ip       = "192.168.50.216/24"
+
+    env      = "production"
+    stack    = "grafana"
+  }
+
+  # -----------------------------------------------------
+  # Dev (900 - 999)
+  # -----------------------------------------------------
+  atlas = {
+    vmid     = 999
+    hostname = "atlas"
+    tags     = ["docker", "development.core"]
+
+    cores    = 2
+    memory   = 4096
+    disk     = 20
+    ip       = "192.168.50.254/24"
+
+    env      = "development"
+    stack    = "misc"
   }
 }
