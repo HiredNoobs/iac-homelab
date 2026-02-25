@@ -40,7 +40,9 @@
       User={{ node_exporter_user }}
       Group={{ node_exporter_user }}
       Type=simple
-      ExecStart={{ node_exporter_install_dir }}/node_exporter
+      ExecStart=/usr/local/bin/node_exporter \
+        --collector.systemd \
+        --collector.processes
       Restart=on-failure
 
       [Install]
