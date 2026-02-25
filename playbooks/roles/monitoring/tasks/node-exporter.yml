@@ -1,24 +1,24 @@
 - name: Ensure node_exporter user exists
-  ansible.builtin.user:
+  user:
     name: "{{ node_exporter_user }}"
     shell: /usr/sbin/nologin
     system: yes
     create_home: no
 
 - name: Download node_exporter archive
-  ansible.builtin.get_url:
+  get_url:
     url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
     dest: "/tmp/node_exporter.tar.gz"
     mode: "0644"
 
 - name: Extract node_exporter
-  ansible.builtin.unarchive:
+  unarchive:
     src: "/tmp/node_exporter.tar.gz"
     dest: "/tmp"
     remote_src: yes
 
 - name: Install node_exporter binary
-  ansible.builtin.copy:
+  copy:
     src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
     dest: "{{ node_exporter_install_dir }}/node_exporter"
     mode: "0755"
@@ -27,7 +27,7 @@
     remote_src: yes
 
 - name: Create systemd service for node_exporter
-  ansible.builtin.copy:
+  copy:
     dest: "{{ node_exporter_service }}"
     mode: "0644"
     content: |
@@ -47,11 +47,11 @@
       WantedBy=multi-user.target
 
 - name: Reload systemd
-  ansible.builtin.systemd:
+  systemd:
     daemon_reload: yes
 
 - name: Enable and start node_exporter
-  ansible.builtin.systemd:
+  systemd:
     name: node_exporter
     enabled: yes
     state: started
