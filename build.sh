@@ -52,6 +52,7 @@ run_playbooks \
   readycheck.yml \
   autologin.yml \
   patch.yml \
+  monitoring.yml \
   swarm.yml \
   keepalived.yml \
   movein.yml
