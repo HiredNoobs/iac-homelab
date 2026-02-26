@@ -1,0 +1,3 @@
+swarm_cluster: "production.services"
+swarm_role: "worker"
+swarm_labels: "homepage_services_homepage"

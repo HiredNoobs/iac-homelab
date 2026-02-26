@@ -178,6 +178,22 @@ nodes = {
     stack    = "grafana"
   }
 
+  # Leaving VMID / IP space for vlogs001 and vmetrics001
+
+  landing001 = {
+    vmid     = 605
+    hostname = "prod-landing001"
+    tags     = ["docker", "production.services"]
+
+    cores    = 1
+    memory   = 512
+    disk     = 5
+    ip       = "192.168.50.219/24"
+
+    env      = "production"
+    stack    = "landing"
+  }
+
   # -----------------------------------------------------
   # Dev (900 - 999)
   # -----------------------------------------------------
@@ -188,7 +204,7 @@ nodes = {
 
     cores    = 2
     memory   = 4096
-    disk     = 20
+    disk     = 30
     ip       = "192.168.50.254/24"
 
     env      = "development"
