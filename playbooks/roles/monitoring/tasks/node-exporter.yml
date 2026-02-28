@@ -41,6 +41,7 @@
       Group={{ node_exporter_user }}
       Type=simple
       ExecStart=/usr/local/bin/node_exporter \
+        --collector.filesystem.ignored-mount-points=^/(sys|proc|dev|run)($|/) \
         --collector.systemd \
         --collector.processes
       Restart=on-failure
