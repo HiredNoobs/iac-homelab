@@ -1,0 +1,6 @@
+swarm_cluster: "production.edge"
+swarm_role: "manager"
+
+keepalived_vip: "192.168.50.12/24"
+keepalived_auth_pass: "supersecretpassword12345"
+keepalived_router_id: 53

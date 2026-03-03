@@ -1,0 +1,4 @@
+swarm_labels: "pihole_edge_pihole_primary pihole_edge_unbound_primary"
+
+keepalived_role: "MASTER"
+keepalived_priority: 150

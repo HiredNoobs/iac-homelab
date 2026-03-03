@@ -1,0 +1,4 @@
+swarm_labels: "nginx_edge_nginx_primary"
+
+keepalived_role: "MASTER"
+keepalived_priority: 150

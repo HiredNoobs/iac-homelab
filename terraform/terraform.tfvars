@@ -1,16 +1,66 @@
 # Note: env/stack are only used for generating the inventory for Ansible.
 nodes = {
   # -----------------------------------------------------
-  # Essential services (001 - )
+  # Prod Edge (400 - 499)
   # -----------------------------------------------------
 
-  # pihole001 = {}
+  # The IPs will get shifted down at some point in the future...
 
-  # pihole001 = {}
+  nginx001 = {
+    vmid     = 402
+    hostname = "prod-nginx001"
+    tags     = ["docker", "production.edge"]
 
-  # nginx001 = {}
+    cores    = 1
+    memory   = 512
+    disk     = 4
+    ip       = "192.168.50.13/24"
 
-  # nginx002 = {}
+    env      = "production"
+    stack    = "nginx"
+  }
+
+  nginx002 = {
+    vmid     = 403
+    hostname = "prod-nginx002"
+    tags     = ["docker", "production.edge"]
+
+    cores    = 1
+    memory   = 512
+    disk     = 4
+    ip       = "192.168.50.14/24"
+
+    env      = "production"
+    stack    = "nginx"
+  }
+
+  pihole001 = {
+    vmid     = 400
+    hostname = "prod-pihole001"
+    tags     = ["docker", "production.edge"]
+
+    cores    = 1
+    memory   = 512
+    disk     = 4
+    ip       = "192.168.50.16/24"
+
+    env      = "production"
+    stack    = "pihole"
+  }
+
+  pihole002 = {
+    vmid     = 401
+    hostname = "prod-pihole002"
+    tags     = ["docker", "production.edge"]
+
+    cores    = 1
+    memory   = 512
+    disk     = 4
+    ip       = "192.168.50.17/24"
+
+    env      = "production"
+    stack    = "pihole"
+  }
 
   # -----------------------------------------------------
   # Prod Core (500 - 599)
@@ -197,6 +247,7 @@ nodes = {
   # -----------------------------------------------------
   # Dev (900 - 999)
   # -----------------------------------------------------
+
   atlas = {
     vmid     = 999
     hostname = "atlas"

@@ -1,0 +1,4 @@
+swarm_labels: "pihole_edge_pihole_secondary pihole_edge_unbound_secondary"
+
+keepalived_role: "BACKUP"
+keepalived_priority: 100

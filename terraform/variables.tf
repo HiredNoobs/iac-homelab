@@ -7,7 +7,6 @@ variable "pm_password" {
   sensitive = true
 }
 
-
 variable "nodes" {
   type = map(object({
     vmid     = number
@@ -21,7 +20,6 @@ variable "nodes" {
     stack    = string
   }))
 }
-
 
 variable "ostemplate" {
   type = string
