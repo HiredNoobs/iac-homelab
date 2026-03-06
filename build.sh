@@ -16,12 +16,11 @@ function run_terraform {
   terraform validate
   terraform plan
 
-  echo "Apply Terraform? [y/N]"
-  read -r confirm
+  read -r -p "Apply Terraform? [y/N]: " confirm
 
   if [[ "$confirm" =~ ^[Yy]$ ]]; then
     echo "Applying terraform changes"
-    terraform apply -auto-approve -parallelism=2 || exit 1
+    terraform apply -auto-approve -parallelism=1 || exit 1
   else
     echo "Skipping build."
     exit 0
