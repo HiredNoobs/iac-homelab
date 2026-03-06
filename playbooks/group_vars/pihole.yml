@@ -8,3 +8,4 @@ keepalived_router_id: 53
 keepalived_healthcheck_enabled: true
 keepalived_healthcheck_template: check_rsyslog.sh.j2
 keepalived_healthcheck_script: /etc/keepalived/scripts/check_pihole.sh
+keepalived_healthcheck_interval: 5
