@@ -18,14 +18,33 @@
     repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian trixie stable"
     state: present
 
+- name: Unhold Docker packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: install
+  loop:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
+
 - name: Install Docker
   ansible.builtin.apt:
     name:
-      - docker-ce
-      - docker-ce-cli
-      - containerd.io
+      - "docker-ce={{ docker_package_versions.docker_ce }}"
+      - "docker-ce-cli={{ docker_package_versions.docker_ce_cli }}"
+      - "containerd.io={{ docker_package_versions.containerd_io }}"
     state: present
     update_cache: yes
+
+# Prevent the patching role from updating Docker...
+- name: Hold Docker packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - docker-ce
+    - docker-ce-cli
+    - containerd.io
 
 - name: Enable Docker
   ansible.builtin.service:
