@@ -18,9 +18,9 @@
   when: keepalived_healthcheck_enabled | default(false)
 
 - name: Deploy health check script
-  template:
-    src: "{{ keepalived_healthcheck_template }}"
-    dest: "{{ keepalived_healthcheck_script }}"
+  copy:
+    src: "healthchecks/{{ keepalived_healthcheck_script }}"
+    dest: "/etc/keepalived/scripts/{{ keepalived_healthcheck_script }}"
     mode: 0755
   when: keepalived_healthcheck_enabled
 

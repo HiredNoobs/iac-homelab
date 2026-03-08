@@ -4,3 +4,6 @@ swarm_role: "manager"
 keepalived_vip: "192.168.50.12/24"
 keepalived_auth_pass: "supersecretpassword12345"
 keepalived_router_id: 54
+
+keepalived_healthcheck_enabled: true
+keepalived_healthcheck_script: check_nginx.sh
