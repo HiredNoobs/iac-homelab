@@ -1,4 +1,4 @@
-swarm_labels: "nginx_edge_nginx_secondary"
+swarm_labels: "nginx_edge_nginx_secondary nginx_edge_acme_secondary"
 
 keepalived_role: "BACKUP"
 keepalived_priority: 100
