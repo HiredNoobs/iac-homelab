@@ -7,4 +7,4 @@ keepalived_router_id: 53
 
 keepalived_healthcheck_enabled: true
 keepalived_healthcheck_script: check_pihole.sh
-keepalived_healthcheck_interval: 5
+keepalived_healthcheck_interval: 2
