@@ -12,7 +12,7 @@
 
 - name: Ensure health check script directory exists
   file:
-    path: "{{ keepalived_healthcheck_script | dirname }}"
+    path: /etc/keepalived/scripts/
     state: directory
     mode: 0755
   when: keepalived_healthcheck_enabled | default(false)
