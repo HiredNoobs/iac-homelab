@@ -12,15 +12,15 @@
 
 - name: Ensure health check script directory exists
   file:
-    path: /etc/keepalived/scripts/
+    path: "{{ keepalived_healthcheck_script | dirname }}"
     state: directory
     mode: 0755
   when: keepalived_healthcheck_enabled | default(false)
 
 - name: Deploy health check script
   copy:
-    src: "healthchecks/{{ keepalived_healthcheck_script }}"
-    dest: "/etc/keepalived/scripts/{{ keepalived_healthcheck_script }}"
+    src: "healthchecks/{{ keepalived_healthcheck_script | basename }}"
+    dest: "{{ keepalived_healthcheck_script }}"
     mode: 0755
   when: keepalived_healthcheck_enabled
 
