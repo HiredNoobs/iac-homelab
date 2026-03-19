@@ -73,7 +73,7 @@ nodes = {
 
     cores    = 1
     memory   = 512
-    disk     = 4
+    disk     = 10
     ip       = "192.168.50.201/24"
 
     env      = "production"
@@ -87,7 +87,7 @@ nodes = {
 
     cores    = 1
     memory   = 512
-    disk     = 4
+    disk     = 10
     ip       = "192.168.50.202/24"
 
     env      = "production"
