@@ -18,14 +18,21 @@
     repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian trixie stable"
     state: present
 
-- name: Unhold Docker packages
-  ansible.builtin.dpkg_selections:
-    name: "{{ item }}"
-    selection: install
+- name: Check if Docker packages exist
+  ansible.builtin.shell: "dpkg-query -W -f='${Status}' {{ item }} 2>/dev/null || true"
+  register: docker_pkg_status
+  changed_when: false
   loop:
     - docker-ce
     - docker-ce-cli
     - containerd.io
+
+- name: Unhold Docker packages
+  ansible.builtin.dpkg_selections:
+    name: "{{ item.item }}"
+    selection: install
+  loop: "{{ docker_pkg_status.results }}"
+  when: "'installed' in item.stdout or 'hold' in item.stdout"
 
 - name: Install Docker
   ansible.builtin.apt:
