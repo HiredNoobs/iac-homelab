@@ -1,0 +1,1 @@
+swarm_labels: "grafana_services_vmalert grafana_services_alertmanager"

@@ -214,24 +214,77 @@ nodes = {
     stack    = "vault"
   }
 
-  grafana001 = {
+  vault003 = {
     vmid     = 602
+    hostname = "prod-vault003"
+    tags     = ["docker", "production.services"]
+
+    cores    = 1
+    memory   = 512
+    disk     = 10
+    ip       = "192.168.50.220/24"
+
+    env      = "production"
+    stack    = "vault"
+  }
+
+  grafana001 = {
+    vmid     = 603
     hostname = "prod-grafana001"
     tags     = ["docker", "production.services"]
 
     cores    = 1
-    memory   = 4096
-    disk     = 20
+    memory   = 1024
+    disk     = 10
     ip       = "192.168.50.216/24"
 
     env      = "production"
     stack    = "grafana"
   }
 
-  # Leaving VMID / IP space for vlogs001 and vmetrics001
+  victorialogs001 = {
+    vmid     = 604
+    hostname = "prod-victorialogs001"
+    tags     = ["docker", "production.services"]
 
-  landing001 = {
+    cores    = 1
+    memory   = 1024
+    disk     = 20
+    ip       = "192.168.50.221/24"
+
+    env      = "production"
+    stack    = "grafana"
+  }
+
+  victoriametrics001 = {
     vmid     = 605
+    hostname = "prod-victoriametrics001"
+    tags     = ["docker", "production.services"]
+
+    cores    = 1
+    memory   = 1024
+    disk     = 20
+    ip       = "192.168.50.222/24"
+
+    env      = "production"
+    stack    = "grafana"
+  }
+
+  alertmanager001 = {
+    vmid     = 606
+    hostname = "prod-alertmanager001"
+    tags     = ["docker", "production.services"]
+
+    cores    = 1
+    memory   = 1024
+    disk     = 10
+    ip       = "192.168.50.223/24"
+
+    env      = "production"
+    stack    = "grafana"
+  }
+  landing001 = {
+    vmid     = 607
     hostname = "prod-landing001"
     tags     = ["docker", "production.services"]
 
