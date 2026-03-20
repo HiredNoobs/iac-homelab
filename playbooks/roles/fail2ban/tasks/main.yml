@@ -3,6 +3,12 @@
     name: fail2ban
     state: present
 
+- name: Ensure action.d directory exists
+  file:
+    path: /etc/fail2ban/action.d
+    state: directory
+    mode: '0755'
+
 - name: Ensure jail.d directory exists
   file:
     path: /etc/fail2ban/jail.d
@@ -25,6 +31,11 @@
     group: root
     mode: '0755'
   when: fail2ban_enable_nginx
+
+- name: Deploy docker-action
+  copy:
+    src: action.d/docker-action.conf
+    dest: /etc/fail2ban/action.d/docker-action.conf
 
 - name: Deploy SSH jail
   copy:
