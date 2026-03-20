@@ -27,33 +27,34 @@
     - docker-ce-cli
     - containerd.io
 
-- name: Unhold Docker packages
-  ansible.builtin.dpkg_selections:
-    name: "{{ item.item }}"
-    selection: install
-  loop: "{{ docker_pkg_status.results }}"
-  when: item.stdout is defined and
-        'installed' in item.stdout and
-        'hold' in item.stdout
+- block:
+    - name: Unhold Docker packages
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: install
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
 
-- name: Install Docker
-  ansible.builtin.apt:
-    name:
-      - "docker-ce={{ docker_package_versions.docker_ce }}"
-      - "docker-ce-cli={{ docker_package_versions.docker_ce_cli }}"
-      - "containerd.io={{ docker_package_versions.containerd_io }}"
-    state: present
-    update_cache: yes
-
-# Prevent the patching role from updating Docker...
-- name: Hold Docker packages
-  ansible.builtin.dpkg_selections:
-    name: "{{ item }}"
-    selection: hold
-  loop:
-    - docker-ce
-    - docker-ce-cli
-    - containerd.io
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - "docker-ce={{ docker_package_versions.docker_ce }}"
+          - "docker-ce-cli={{ docker_package_versions.docker_ce_cli }}"
+          - "containerd.io={{ docker_package_versions.containerd_io }}"
+        state: present
+        update_cache: yes
+  always:
+      # Prevent the patching role from updating Docker...
+    - name: Hold Docker packages
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
 
 - name: Enable Docker
   ansible.builtin.service:
