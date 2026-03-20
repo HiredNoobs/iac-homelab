@@ -1,0 +1,47 @@
+- name: Install fail2ban
+  package:
+    name: fail2ban
+    state: present
+
+- name: Ensure jail.d directory exists
+  file:
+    path: /etc/fail2ban/jail.d
+    state: directory
+    mode: '0755'
+
+- name: Ensure filter.d directory exists
+  file:
+    path: /etc/fail2ban/filter.d
+    state: directory
+    mode: '0755'
+
+# Necessary to create so docker can bind mount it when using
+# swarm mode, as stacks don't create the local volumes
+- name: Ensure nginx log directory exists
+  file:
+    path: /var/log/nginx
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  when: fail2ban_enable_nginx
+
+- name: Deploy SSH jail
+  copy:
+    src: jail.d/sshd.conf
+    dest: /etc/fail2ban/jail.d/sshd.conf
+  notify: restart fail2ban
+
+- name: Deploy nginx filter
+  copy:
+    src: filter.d/nginx.conf
+    dest: /etc/fail2ban/filter.d/nginx.conf
+  when: fail2ban_enable_nginx
+  notify: restart fail2ban
+
+- name: Deploy nginx jail
+  copy:
+    src: jail.d/nginx.conf
+    dest: /etc/fail2ban/jail.d/nginx.conf
+  when: fail2ban_enable_nginx
+  notify: restart fail2ban

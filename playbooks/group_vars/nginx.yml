@@ -8,3 +8,6 @@ keepalived_router_id: 54
 keepalived_healthcheck_enabled: true
 keepalived_healthcheck_script: /etc/keepalived/scripts/check_nginx.sh
 keepalived_healthcheck_interval: 5
+
+fail2ban_enable_nginx: true
+
