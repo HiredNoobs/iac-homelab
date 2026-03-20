@@ -32,7 +32,9 @@
     name: "{{ item.item }}"
     selection: install
   loop: "{{ docker_pkg_status.results }}"
-  when: "'installed' in item.stdout or 'hold' in item.stdout"
+  when: item.stdout is defined and
+        'installed' in item.stdout and
+        'hold' in item.stdout
 
 - name: Install Docker
   ansible.builtin.apt:
