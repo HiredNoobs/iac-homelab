@@ -57,5 +57,5 @@ run_playbooks \
   monitoring.yml \
   swarm.yml \
   keepalived.yml \
+  fail2ban.yml \
   movein.yml \
-  fail2ban.yml

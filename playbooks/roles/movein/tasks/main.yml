@@ -1,5 +1,5 @@
 - name: Setup autologin
-  import_tasks: autlogin.yml
+  import_tasks: autologin.yml
 
 - name: Setup system defaults
   import_tasks: setup_defaults.yml
