@@ -1,25 +1,26 @@
 - name: Install required packages
-  ansible.builtin.apt:
+  apt:
     name:
       - ca-certificates
       - curl
       - gnupg
     state: present
     update_cache: yes
+    cache_valid_time: 3600
 
 - name: Add Docker GPG key
-  ansible.builtin.get_url:
+  get_url:
     url: https://download.docker.com/linux/debian/gpg
     dest: /usr/share/keyrings/docker.gpg
     mode: '0644'
 
 - name: Add Docker repository
-  ansible.builtin.apt_repository:
+  apt_repository:
     repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian trixie stable"
     state: present
 
 - name: Check if Docker packages exist
-  ansible.builtin.shell: "dpkg-query -W -f='${Status}' {{ item }} 2>/dev/null || true"
+  shell: "dpkg-query -W -f='${Status}' {{ item }} 2>/dev/null || true"
   register: docker_pkg_status
   changed_when: false
   loop:
@@ -29,7 +30,7 @@
 
 - block:
     - name: Unhold Docker packages
-      ansible.builtin.dpkg_selections:
+      dpkg_selections:
         name: "{{ item }}"
         selection: install
       loop:
@@ -38,17 +39,18 @@
         - containerd.io
 
     - name: Install Docker
-      ansible.builtin.apt:
+      apt:
         name:
           - "docker-ce={{ docker_package_versions.docker_ce }}"
           - "docker-ce-cli={{ docker_package_versions.docker_ce_cli }}"
           - "containerd.io={{ docker_package_versions.containerd_io }}"
         state: present
         update_cache: yes
+        cache_valid_time: 3600
   always:
       # Prevent the patching role from updating Docker...
     - name: Hold Docker packages
-      ansible.builtin.dpkg_selections:
+      dpkg_selections:
         name: "{{ item }}"
         selection: hold
       loop:
@@ -57,7 +59,7 @@
         - containerd.io
 
 - name: Enable Docker
-  ansible.builtin.service:
+  service:
     name: docker
     state: started
     enabled: yes

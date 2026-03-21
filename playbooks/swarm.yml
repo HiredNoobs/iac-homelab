@@ -9,11 +9,13 @@
 
 - hosts: docker_nodes
   become: yes
+  gather_facts: false
   roles:
     - docker
 
 - hosts: docker_nodes
   become: yes
+  gather_facts: false
   tasks:
     - name: Group managers
       group_by:
@@ -22,5 +24,6 @@
 
 - hosts: docker_nodes
   become: yes
+  gather_facts: false
   roles:
     - swarm

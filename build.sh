@@ -37,6 +37,10 @@ function run_playbooks {
       echo "$playbook failed, aborting."
       exit 1
     }
+    # Probably not necessary but some of these playbooks
+    # do restart the host, reload services, etc.
+    echo "Waiting for services to stabilise..."
+    sleep 10
   done
   cd "$HERE" || exit 1
 }
@@ -49,7 +53,6 @@ run_terraform
 
 run_playbooks \
   readycheck.yml \
-  autologin.yml \
   patch.yml \
   monitoring.yml \
   swarm.yml \

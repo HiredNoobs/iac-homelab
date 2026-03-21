@@ -9,5 +9,6 @@
 
 - hosts: keepalived_nodes
   become: yes
+  gather_facts: false
   roles:
     - keepalived
