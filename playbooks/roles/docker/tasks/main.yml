@@ -5,8 +5,6 @@
       - curl
       - gnupg
     state: present
-    update_cache: yes
-    cache_valid_time: 3600
 
 - name: Add Docker GPG key
   get_url:
@@ -19,26 +17,32 @@
     repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/debian trixie stable"
     state: present
 
-- name: Check if Docker packages exist
-  shell: "dpkg-query -W -f='${Status}' {{ item }} 2>/dev/null || true"
-  register: docker_pkg_status
+- name: Get installed Docker package versions
+  shell: "dpkg-query -W -f='${Version}' {{ item }} 2>/dev/null || true"
+  register: docker_versions
   changed_when: false
   loop:
     - docker-ce
     - docker-ce-cli
     - containerd.io
 
+- name: Determine if Docker install/update is required
+  set_fact:
+    docker_install_required: >-
+      {{ docker_versions.results[0].stdout != docker_package_versions.docker_ce
+         or docker_versions.results[1].stdout != docker_package_versions.docker_ce_cli
+         or docker_versions.results[2].stdout != docker_package_versions.containerd_io }}
+
 - block:
     - name: Unhold Docker packages
-      dpkg_selections:
-        name: "{{ item }}"
-        selection: install
+      command: "apt-mark unhold {{ item }}"
       loop:
         - docker-ce
         - docker-ce-cli
         - containerd.io
+      changed_when: false
 
-    - name: Install Docker
+    - name: Install Docker packages
       apt:
         name:
           - "docker-ce={{ docker_package_versions.docker_ce }}"
@@ -47,16 +51,15 @@
         state: present
         update_cache: yes
         cache_valid_time: 3600
+  when: docker_install_required
   always:
-      # Prevent the patching role from updating Docker...
     - name: Hold Docker packages
-      dpkg_selections:
-        name: "{{ item }}"
-        selection: hold
+      command: "apt-mark hold {{ item }}"
       loop:
         - docker-ce
         - docker-ce-cli
         - containerd.io
+      changed_when: false
 
 - name: Enable Docker
   service:
