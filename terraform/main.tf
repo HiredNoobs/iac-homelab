@@ -57,3 +57,11 @@ resource "local_file" "ansible_inventory" {
 
   filename = "${path.module}/../playbooks/inventory.generated.yml"
 }
+
+resource "local_file" "hosts_file" {
+  content = templatefile("${path.module}/templates/hosts.tpl", {
+    nodes = var.nodes
+  })
+
+  filename = "${path.module}/../playbooks/movein/files/hosts.generated"
+}

@@ -283,6 +283,7 @@ nodes = {
     env      = "production"
     stack    = "grafana"
   }
+
   landing001 = {
     vmid     = 607
     hostname = "prod-landing001"
