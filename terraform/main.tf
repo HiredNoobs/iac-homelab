@@ -58,9 +58,30 @@ resource "local_file" "ansible_inventory" {
   filename = "${path.module}/../playbooks/inventory.generated.yml"
 }
 
+locals {
+  nodes_list = [
+    for k, v in var.nodes : {
+      hostname = v.hostname
+      ip       = v.ip
+    }
+  ]
+
+  nodes_sorted = sort([
+    for n in local.nodes_list :
+    "${split("/", n.ip)[0]}|${n.hostname}"
+  ])
+
+  nodes_sorted_objects = [
+    for entry in local.nodes_sorted : {
+      ip       = split("|", entry)[0]
+      hostname = split("|", entry)[1]
+    }
+  ]
+}
+
 resource "local_file" "hosts_file" {
   content = templatefile("${path.module}/templates/hosts.tpl", {
-    nodes = var.nodes
+    nodes = local.nodes_sorted_objects
   })
 
   filename = "${path.module}/../playbooks/movein/files/hosts.generated"
