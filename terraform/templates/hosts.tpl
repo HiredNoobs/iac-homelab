@@ -3,7 +3,8 @@
 ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 
-# pve nodes
+# --- BEGIN PVE ---
 %{ for key, node in nodes ~}
-${node.ip} ${node.hostname}.pve ${node.hostname}
+${split("/", node.ip)[0]} ${node.hostname}.pve ${node.hostname}
 %{ endfor ~}
+# --- END PVE ---
