@@ -84,5 +84,5 @@ resource "local_file" "hosts_file" {
     nodes = local.nodes_sorted_objects
   })
 
-  filename = "${path.module}/../playbooks/movein/files/hosts.generated"
+  filename = "${path.module}/../playbooks/roles/movein/files/hosts.generated"
 }
