@@ -182,6 +182,20 @@ nodes = {
     stack    = "contentbot"
   }
 
+  vaultwarden001 = {
+    vmid     = 512
+    hostname = "prod-vaultwarden001"
+    tags     = ["docker", "production.core"]
+
+    cores    = 1
+    memory   = 1024
+    disk     = 10
+    ip       = "192.168.50.7/24"
+
+    env      = "production"
+    stack    = "vaultwarden"
+  }
+
   # -----------------------------------------------------
   # Prod Services (600 - 699)
   # -----------------------------------------------------
