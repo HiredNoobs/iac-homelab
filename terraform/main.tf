@@ -52,7 +52,9 @@ module "lxc" {
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/templates/inventory.tpl", {
     nodes     = var.nodes
-    passwords = random_password.container_password
+    passwords = {
+      for k, v in random_password.container_password : k => v.result
+    }
   })
 
   filename = "${path.module}/../playbooks/inventory.generated.yml"
