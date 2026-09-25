@@ -58,7 +58,7 @@ variable "image_datastore" {
 
 variable "vm_datastore" {
   type    = string
-  default = "local-lvm"
+  default = "vmdata"
 }
 
 # -----------------------------------------------------
