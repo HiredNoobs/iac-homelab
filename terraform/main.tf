@@ -136,6 +136,7 @@ resource "local_file" "ansible_inventory" {
     all = {
       vars = {
         domain       = var.domain
+        nameservers  = var.nameservers
         admin_user   = var.admin_user
         talosconfigs = { for context, cluster in module.cluster : context => cluster.talosconfig_path }
       }

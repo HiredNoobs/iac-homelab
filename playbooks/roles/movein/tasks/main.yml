@@ -1,3 +1,6 @@
+- name: Setup DNS
+  import_tasks: dns.yml
+
 - name: Setup system defaults
   import_tasks: setup_defaults.yml
 

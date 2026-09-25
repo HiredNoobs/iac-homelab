@@ -1,0 +1,22 @@
+# Proxmox passes the nameservers to cloud-init as a global setting, which isn't applied by
+# the systemd-networkd config the Debian cloud image renders. That leaves systemd-resolved
+# (the 127.0.0.53 stub in /etc/resolv.conf) with no upstream servers, so set them directly.
+# Runs first, everything after this needs DNS.
+- name: Ensure resolved.conf.d exists
+  file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    mode: '0755'
+
+- name: Configure DNS servers
+  copy:
+    dest: /etc/systemd/resolved.conf.d/10-nameservers.conf
+    mode: '0644'
+    content: |
+      [Resolve]
+      DNS={{ nameservers | join(' ') }}
+      Domains={{ domain }}
+  notify: restart systemd-resolved
+
+- name: Apply DNS changes
+  meta: flush_handlers

@@ -11,3 +11,8 @@
   loop:
     - getty@tty1
     - serial-getty@ttyS0
+
+- name: restart systemd-resolved
+  service:
+    name: systemd-resolved
+    state: restarted
