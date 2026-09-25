@@ -2,7 +2,8 @@ movein_username: "{{ admin_user | default('hirednoobs') }}"
 
 # Branch, tag or commit of tools-bin to check out after movein.sh has cloned it.
 tools_bin_repo: https://github.com/HiredNoobs/tools-bin.git
-tools_bin_version: master
+# TODO: Switch back to master once tools-bin's k8s-deployment branch is merged.
+tools_bin_version: k8s-deployment
 
 # tools-bin `setup` commands run as movein_username.
 tools_bin_setup: [bash, vim, tmux]
