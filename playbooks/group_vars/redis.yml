@@ -1,3 +1,0 @@
-swarm_cluster: "production.core"
-swarm_role: "worker"
-swarm_labels: "redis_core_redis"

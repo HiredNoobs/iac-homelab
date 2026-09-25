@@ -1,6 +1,0 @@
-- name: Initial swarm setup
-  include_tasks: setup.yml
-
-- name: Configure docker labels
-  include_tasks: labels.yml
-  when: swarm_labels is defined

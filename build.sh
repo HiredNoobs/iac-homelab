@@ -13,19 +13,23 @@ function run_terraform {
   cd "$HERE/terraform" || exit 1
 
   terraform init -upgrade
-  terraform validate
-  terraform plan
+  terraform validate || exit 1
+  # Saved so the apply is exactly what was reviewed, it contains secrets and is git ignored.
+  terraform plan -out=tfplan || exit 1
 
   read -r -p "Apply Terraform? [y/N]: " confirm
 
   if [[ "$confirm" =~ ^[Yy]$ ]]; then
     echo "Applying terraform changes"
-    terraform apply -auto-approve -parallelism=1 || exit 1
+    # One at a time so Talos upgrades don't take down several nodes at once.
+    terraform apply -parallelism=1 tfplan || exit 1
   else
     echo "Skipping build."
+    rm -f tfplan
     exit 0
   fi
 
+  rm -f tfplan
   cd "$HERE" || exit 1
 }
 
@@ -33,14 +37,10 @@ function run_playbooks {
   cd "$HERE/playbooks" || exit 1
   for playbook in "$@"; do
     echo "Running $playbook..."
-    ansible-playbook -i inventory.generated.yml "$playbook" || {
+    ansible-playbook "$playbook" || {
       echo "$playbook failed, aborting."
       exit 1
     }
-    # Probably not necessary but some of these playbooks
-    # do restart the host, reload services, etc.
-    echo "Waiting for services to stabilise..."
-    sleep 10
   done
   cd "$HERE" || exit 1
 }
@@ -53,9 +53,8 @@ run_terraform
 
 run_playbooks \
   readycheck.yml \
+  movein.yml \
   patch.yml \
   monitoring.yml \
-  swarm.yml \
-  keepalived.yml \
   fail2ban.yml \
-  movein.yml \
+  mgmt.yml

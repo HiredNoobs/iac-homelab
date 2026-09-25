@@ -1,0 +1,18 @@
+management_username: "{{ admin_user | default('hirednoobs') }}"
+
+# Passed to tools-bin's `context-setup`, a host only manages one orchestrator.
+management_orchestrator: k8s
+
+# Needed by the tools-bin scripts (deployment, secret-*, make-*).
+management_packages:
+  - bash-completion
+  - default-jdk-headless # keytool for make-keystore/make-truststore
+  - git
+  - jq
+  - openssl
+  - python3
+  - rsync
+  - tree
+  - unzip
+  - yq
+  - zip

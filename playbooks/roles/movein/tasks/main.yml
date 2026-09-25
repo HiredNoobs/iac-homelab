@@ -1,14 +1,8 @@
-- name: Setup autologin
-  import_tasks: autologin.yml
-
 - name: Setup system defaults
   import_tasks: setup_defaults.yml
 
-- name: Setup hosts file
-  import_tasks: hosts.yml
-
-- name: Setup home directory and groups
+- name: Setup user and tools-bin
   import_tasks: setup_user.yml
 
-- name: SSH key setup for jumpbox
+- name: Setup SSH keys
   import_tasks: ssh.yml

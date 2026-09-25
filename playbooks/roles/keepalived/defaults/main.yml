@@ -1,3 +1,0 @@
-keepalived_interface: eth0
-
-keepalived_healthcheck_enabled: false

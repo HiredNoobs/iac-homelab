@@ -1,1 +1,8 @@
-movein_username: hirednoobs
+movein_username: "{{ admin_user | default('hirednoobs') }}"
+
+# Branch, tag or commit of tools-bin to check out after movein.sh has cloned it.
+tools_bin_repo: https://github.com/HiredNoobs/tools-bin.git
+tools_bin_version: master
+
+# tools-bin `setup` commands run as movein_username.
+tools_bin_setup: [bash, vim, tmux]

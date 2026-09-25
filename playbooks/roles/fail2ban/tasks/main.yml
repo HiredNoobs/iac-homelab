@@ -1,58 +1,22 @@
+# The sshd jail reads the journal, which needs python3-systemd.
 - name: Install fail2ban
-  package:
-    name: fail2ban
+  apt:
+    name:
+      - fail2ban
+      - python3-systemd
     state: present
-
-- name: Ensure action.d directory exists
-  file:
-    path: /etc/fail2ban/action.d
-    state: directory
-    mode: '0755'
-
-- name: Ensure jail.d directory exists
-  file:
-    path: /etc/fail2ban/jail.d
-    state: directory
-    mode: '0755'
-
-- name: Ensure filter.d directory exists
-  file:
-    path: /etc/fail2ban/filter.d
-    state: directory
-    mode: '0755'
-
-# Necessary to create so docker can bind mount it when using
-# swarm mode, as stacks don't create the local volumes
-- name: Ensure nginx log directory exists
-  file:
-    path: /var/log/nginx
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-  when: fail2ban_enable_nginx
-
-- name: Deploy docker-action
-  copy:
-    src: action.d/docker-action.conf
-    dest: /etc/fail2ban/action.d/docker-action.conf
+    update_cache: yes
+    cache_valid_time: 3600
 
 - name: Deploy SSH jail
   copy:
     src: jail.d/sshd.conf
     dest: /etc/fail2ban/jail.d/sshd.conf
+    mode: '0644'
   notify: restart fail2ban
 
-- name: Deploy nginx filter
-  copy:
-    src: filter.d/nginx.conf
-    dest: /etc/fail2ban/filter.d/nginx.conf
-  when: fail2ban_enable_nginx
-  notify: restart fail2ban
-
-- name: Deploy nginx jail
-  copy:
-    src: jail.d/nginx.conf
-    dest: /etc/fail2ban/jail.d/nginx.conf
-  when: fail2ban_enable_nginx
-  notify: restart fail2ban
+- name: Enable fail2ban
+  service:
+    name: fail2ban
+    state: started
+    enabled: yes

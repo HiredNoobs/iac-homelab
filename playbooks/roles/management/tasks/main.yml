@@ -1,0 +1,10 @@
+- name: Install management packages
+  apt:
+    name: "{{ management_packages }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Setup k8s contexts
+  import_tasks: k8s.yml
+  when: management_orchestrator == "k8s"

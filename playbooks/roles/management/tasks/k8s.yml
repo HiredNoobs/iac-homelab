@@ -1,0 +1,57 @@
+# The talosconfigs are written by Terraform on the Ansible controller (talosconfigs in the
+# generated inventory), context-setup generates the kubeconfigs from them on this host.
+- name: Ensure talos contexts directory exists
+  file:
+    path: "/home/{{ management_username }}/.talos/contexts"
+    state: directory
+    owner: "{{ management_username }}"
+    group: "{{ management_username }}"
+    mode: '0700'
+
+- name: Copy talosconfigs
+  copy:
+    src: "{{ item.value }}"
+    dest: "/home/{{ management_username }}/.talos/contexts/{{ item.key }}.yaml"
+    owner: "{{ management_username }}"
+    group: "{{ management_username }}"
+    mode: '0600'
+  loop: "{{ talosconfigs | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: management_talosconfigs
+
+- name: Check for existing host config
+  stat:
+    path: "/home/{{ management_username }}/.config/bashrc/40-host"
+  register: management_host_config
+
+# A context that failed last time has no kubeconfig, so context-setup is re-run for it.
+- name: Check for existing kubeconfigs
+  stat:
+    path: "/home/{{ management_username }}/.kube/contexts/{{ item }}.yaml"
+  loop: "{{ talosconfigs.keys() | list }}"
+  register: management_kubeconfigs
+
+# Also renews the admin kubeconfig certs, force a re-run with -e management_context_setup=true.
+- name: Run context-setup
+  become_user: "{{ management_username }}"
+  command: "/home/{{ management_username }}/tools-bin/bin/context-setup {{ management_orchestrator }}"
+  # What the user's bashrc would set, context-setup installs talosctl/kubectl into tools-bin/bin.
+  environment:
+    DOMAIN: "{{ domain }}"
+    PATH: "/home/{{ management_username }}/tools-bin/bin:/usr/local/bin:/usr/bin:/bin"
+  when: >-
+    management_talosconfigs.changed
+    or not management_host_config.stat.exists
+    or management_kubeconfigs.results | rejectattr('stat.exists') | list | length > 0
+    or management_context_setup | default(false) | bool
+
+# context-setup carries on if a context fails, this catches it.
+- name: Check the clusters are reachable
+  become_user: "{{ management_username }}"
+  command: >-
+    /home/{{ management_username }}/tools-bin/bin/kubectl
+    --kubeconfig /home/{{ management_username }}/.kube/contexts/{{ item }}.yaml
+    get --raw /readyz
+  loop: "{{ talosconfigs.keys() | list }}"
+  changed_when: false

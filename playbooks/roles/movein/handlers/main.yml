@@ -1,4 +1,4 @@
-- name: restart getty
-  systemd:
-    name: container-getty@1.service
-    state: restarted
+- name: reload sshd
+  service:
+    name: ssh
+    state: reloaded

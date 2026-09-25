@@ -1,20 +1,23 @@
+# The user already exists (created by cloud-init), this clones tools-bin and installs its deps.
 - name: Run movein.sh script
-  environment:
-    MOVEIN_PASSWORD: "{{ lookup('env', 'MOVEIN_PASSWORD') }}"
   shell: |
-    curl -L https://raw.githubusercontent.com/HiredNoobs/tools-bin/refs/heads/master/bin/movein.sh \
-      | bash -s {{ movein_username }} "${MOVEIN_PASSWORD}"
+    set -o pipefail
+    curl -fsSL https://raw.githubusercontent.com/HiredNoobs/tools-bin/refs/heads/master/bin/movein.sh \
+      | bash -s {{ movein_username }}
   args:
     executable: /bin/bash
-  no_log: true
+    creates: "/home/{{ movein_username }}/tools-bin/.git"
+  register: movein_script
 
-- name: Setup bash, vim, and tmux on jumpbox
+- name: Check out tools-bin
   become_user: "{{ movein_username }}"
-  command: "/home/{{ movein_username }}/tools-bin/bin/setup bash vim tmux"
-  when: inventory_hostname == "atlas"
+  git:
+    repo: "{{ tools_bin_repo }}"
+    dest: "/home/{{ movein_username }}/tools-bin"
+    version: "{{ tools_bin_version }}"
+  register: tools_bin_checkout
 
-- name: Add user to docker group
-  user:
-    name: "{{ movein_username }}"
-    groups: docker
-    append: yes
+- name: Setup tools-bin
+  become_user: "{{ movein_username }}"
+  command: "/home/{{ movein_username }}/tools-bin/bin/setup {{ tools_bin_setup | join(' ') }}"
+  when: movein_script.changed or tools_bin_checkout.changed

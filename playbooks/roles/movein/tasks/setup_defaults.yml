@@ -1,24 +1,24 @@
 - name: Install required packages
   apt:
     name:
-      - systemd-sysv # systemctl is missing from the template
-    state: present
-
-- name: Install required packages on dev
-  apt:
-    name:
-      - default-jdk
+      - qemu-guest-agent # Not in the cloud image, Proxmox uses it to shutdown/reboot
       - curl
-      - jq
-      - zip
-      - tree
-      - yq
+      - ca-certificates
     state: present
-  when: inventory_hostname == "atlas"
+    update_cache: yes
+    cache_valid_time: 3600
 
+- name: Enable qemu-guest-agent
+  service:
+    name: qemu-guest-agent
+    state: started
+    enabled: yes
+
+# C.UTF-8 is built into glibc, it doesn't need the locales package.
 - name: Ensure system locale is set to C.UTF-8
   lineinfile:
     path: /etc/default/locale
     regexp: '^LANG='
     line: 'LANG="C.UTF-8"'
     create: yes
+    mode: '0644'

@@ -2,3 +2,11 @@
   wait_for_connection:
     delay: 30
     timeout: 600
+
+# cloud-init holds the apt lock while it's setting up a new VM.
+- name: Waiting for cloud-init to finish...
+  command: cloud-init status --wait
+  register: cloud_init_status
+  changed_when: false
+  # 2 is "done with recoverable errors", e.g. deprecated config keys.
+  failed_when: cloud_init_status.rc not in [0, 2]

@@ -1,2 +1,0 @@
-keepalived_role: "MASTER"
-keepalived_priority: 150
