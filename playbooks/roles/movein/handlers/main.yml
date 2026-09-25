@@ -2,3 +2,12 @@
   service:
     name: ssh
     state: reloaded
+
+- name: restart console gettys
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+    daemon_reload: yes
+  loop:
+    - getty@tty1
+    - serial-getty@ttyS0

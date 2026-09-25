@@ -6,3 +6,6 @@
 
 - name: Setup SSH keys
   import_tasks: ssh.yml
+
+- name: Setup console autologin
+  import_tasks: autologin.yml

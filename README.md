@@ -36,7 +36,7 @@ Terraform creates the VMs from the Debian 13 cloud image, cloud-init creates ``a
 | Playbook | Hosts | Does |
 | --- | --- | --- |
 | ``readycheck.yml`` | all | Waits for SSH and cloud-init. |
-| ``movein.yml`` | all | qemu-guest-agent, locale, tools-bin (``movein.sh``, checked out at ``tools_bin_version``, then ``setup bash vim tmux``), SSH keys between the hosts, key-only sshd. |
+| ``movein.yml`` | all | qemu-guest-agent, locale, tools-bin (``movein.sh``, checked out at ``tools_bin_version``, then ``setup bash vim tmux``), SSH keys between the hosts, key-only sshd, passwordless login on the Proxmox consoles. |
 | ``patch.yml`` | all | ``apt dist-upgrade``, one host at a time, rebooting if needed. |
 | ``monitoring.yml`` | all | node_exporter. |
 | ``fail2ban.yml`` | all | fail2ban with an sshd jail. |

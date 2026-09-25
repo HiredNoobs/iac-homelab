@@ -1,0 +1,30 @@
+# Passwordless login from the Proxmox UI, noVNC is tty1 and xterm.js is the serial console.
+# The user has no password (cloud-init), so this is the only way in if SSH breaks.
+- name: Ensure getty override directories exist
+  file:
+    path: "/etc/systemd/system/{{ item }}.service.d"
+    state: directory
+    mode: '0755'
+  loop:
+    - getty@tty1
+    - serial-getty@ttyS0
+
+- name: Enable autologin on tty1
+  copy:
+    dest: /etc/systemd/system/getty@tty1.service.d/autologin.conf
+    mode: '0644'
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=-/sbin/agetty --autologin {{ movein_username }} --noclear - $TERM
+  notify: restart console gettys
+
+- name: Enable autologin on the serial console
+  copy:
+    dest: /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf
+    mode: '0644'
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=-/sbin/agetty --autologin {{ movein_username }} --keep-baud 115200,57600,38400,9600 - $TERM
+  notify: restart console gettys
