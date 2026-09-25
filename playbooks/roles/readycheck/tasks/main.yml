@@ -1,11 +1,26 @@
+# Rebuilt VMs (by Terraform or by hand) have new host keys, forget the old ones so
+# StrictHostKeyChecking=accept-new (ansible.cfg) records the new key on first connect.
+# Opt in with `build.sh --refresh-keys` or -e refresh_host_keys=true. Run once from the
+# controller so the hosts don't edit known_hosts at the same time.
+- name: Forget previous host keys
+  known_hosts:
+    name: "{{ hostvars[item].ansible_host | default(item) }}"
+    state: absent
+  loop: "{{ ansible_play_hosts }}"
+  run_once: true
+  delegate_to: localhost
+  become: false
+  when: refresh_host_keys | default(false) | bool
+
 - name: Waiting for hosts to be ready...
   wait_for_connection:
     delay: 30
     timeout: 600
 
-# cloud-init holds the apt lock while it's setting up a new VM.
+# cloud-init holds the apt lock while it's setting up a new VM. First boot includes
+# Proxmox's package upgrade, so allow a while but don't wait forever (124 = timed out).
 - name: Waiting for cloud-init to finish...
-  command: cloud-init status --wait
+  command: timeout 900 cloud-init status --wait --long
   register: cloud_init_status
   changed_when: false
   # 2 is "done with recoverable errors", e.g. deprecated config keys.

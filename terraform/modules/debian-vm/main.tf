@@ -91,26 +91,3 @@ resource "proxmox_virtual_environment_vm" "this" {
     ignore_changes = [disk[0].file_id]
   }
 }
-
-# A new VM has new host keys, remove the old ones from the Terraform host's known_hosts so
-# Ansible (StrictHostKeyChecking=accept-new) can connect. The VM's id is only unknown when
-# it's being replaced, so this only runs when the VM is created or rebuilt.
-resource "terraform_data" "known_hosts" {
-  lifecycle {
-    replace_triggered_by = [proxmox_virtual_environment_vm.this.id]
-  }
-
-  provisioner "local-exec" {
-    command = <<-EOT
-      for host in "$IP" "$NAME" "$NAME.$DOMAIN"; do
-        ssh-keygen -R "$host" >/dev/null 2>&1 || true
-      done
-    EOT
-
-    environment = {
-      IP     = split("/", var.ip)[0]
-      NAME   = var.name
-      DOMAIN = var.domain
-    }
-  }
-}

@@ -3,9 +3,18 @@
 THIS=$(realpath "$0")
 HERE=$(dirname "$THIS")
 
+# Passed to every ansible-playbook run.
+ANSIBLE_ARGS=()
+
 # -----------------------------------------------------
 # Functions
 # -----------------------------------------------------
+
+function usage {
+  echo "Usage: $(basename "$0") [--refresh-keys]"
+  echo
+  echo "  --refresh-keys  Forget the hosts' old SSH host keys before connecting, for rebuilt VMs."
+}
 
 function run_terraform {
   local confirm
@@ -37,7 +46,7 @@ function run_playbooks {
   cd "$HERE/playbooks" || exit 1
   for playbook in "$@"; do
     echo "Running $playbook..."
-    ansible-playbook "$playbook" || {
+    ansible-playbook "$playbook" "${ANSIBLE_ARGS[@]}" || {
       echo "$playbook failed, aborting."
       exit 1
     }
@@ -48,6 +57,14 @@ function run_playbooks {
 # -----------------------------------------------------
 # Main
 # -----------------------------------------------------
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --refresh-keys) ANSIBLE_ARGS+=(-e refresh_host_keys=true); shift;;
+    -h|--help) usage; exit 0;;
+    *) echo "Unknown option: $1"; usage; exit 1;;
+  esac
+done
 
 run_terraform
 

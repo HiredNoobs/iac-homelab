@@ -35,14 +35,14 @@ Terraform creates the VMs from the Debian 13 cloud image, cloud-init creates ``a
 
 | Playbook | Hosts | Does |
 | --- | --- | --- |
-| ``readycheck.yml`` | all | Waits for SSH and cloud-init. |
+| ``readycheck.yml`` | all | Waits for SSH and cloud-init, optionally forgets old host keys first (see below). |
 | ``movein.yml`` | all | qemu-guest-agent, locale, tools-bin (``movein.sh``, checked out at ``tools_bin_version``, then ``setup bash vim tmux``), SSH keys between the hosts, key-only sshd, passwordless login on the Proxmox consoles. |
 | ``patch.yml`` | all | ``apt dist-upgrade``, one host at a time, rebooting if needed. |
 | ``monitoring.yml`` | all | node_exporter. |
 | ``fail2ban.yml`` | all | fail2ban with an sshd jail. |
 | ``mgmt.yml`` | mgmt | tools-bin dependencies, copies the talosconfigs Terraform wrote to ``~/.talos/contexts`` and runs ``context-setup k8s``. |
 
-When a management VM is created or rebuilt, Terraform removes its old host keys from ``~/.ssh/known_hosts`` on the Terraform host so Ansible can connect to it.
+Rebuilt VMs (by Terraform or by hand) have new SSH host keys. Run ``./build.sh --refresh-keys`` (or ``ansible-playbook readycheck.yml -e refresh_host_keys=true``) to remove the old keys from ``~/.ssh/known_hosts`` before connecting.
 
 Playbooks can be re-run on their own from ``playbooks/``, e.g. ``ansible-playbook patch.yml``. ``context-setup`` is only re-run when a talosconfig changes or a cluster's kubeconfig is missing, use ``ansible-playbook mgmt.yml -e management_context_setup=true`` to renew the kubeconfig certificates.
 
