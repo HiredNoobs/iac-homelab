@@ -216,6 +216,8 @@ data "talos_machine_configuration" "node" {
       }),
     ] : [],
     # Keeps Longhorn's replicas off the system disk, so a full volume can't cause evictions.
+    # User volumes are mounted under /var/mnt, which the kubelet already has, so it needs
+    # no extraMounts (they can't be set anyway, .machine.kubelet conflicts with KubeletConfig).
     each.value.longhorn_disk != null ? [
       yamlencode({
         apiVersion = "v1alpha1"
@@ -227,18 +229,6 @@ data "talos_machine_configuration" "node" {
           }
           minSize = "1GiB"
           grow    = true
-        }
-      }),
-      yamlencode({
-        machine = {
-          kubelet = {
-            extraMounts = [{
-              destination = "/var/mnt/longhorn"
-              type        = "bind"
-              source      = "/var/mnt/longhorn"
-              options     = ["bind", "rshared", "rw"]
-            }]
-          }
         }
       }),
     ] : []
