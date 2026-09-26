@@ -28,11 +28,11 @@ variable "gateway" {
 }
 
 # In order of preference. Changes are applied to running nodes without a reboot.
-# Once Pi-hole runs in the cluster put its LoadBalancer IP first and keep 192.168.111.5
-# as a fallback, the nodes need DNS to pull images when Pi-hole itself is down.
+# The router provides DNS for the lab VLAN and falls back to an upstream resolver,
+# so the nodes can still pull images when the in-cluster Pi-hole is down.
 variable "nameservers" {
   type    = list(string)
-  default = ["192.168.111.5"]
+  default = ["192.168.111.1"]
 }
 
 variable "bridge" {
@@ -86,7 +86,8 @@ variable "kubernetes_version" {
 
 variable "talos_extensions" {
   type    = list(string)
-  default = ["qemu-guest-agent"]
+  # iscsi-tools and util-linux-tools are required by Longhorn.
+  default = ["qemu-guest-agent", "iscsi-tools", "util-linux-tools"]
 }
 
 # Where each cluster's talosconfig is written, as <context>.yaml (used by tools-bin's context-setup).
@@ -175,6 +176,8 @@ variable "clusters" {
       memory = number
       disk   = number
       labels = optional(map(string), {})
+
+      longhorn_disk = optional(number)
     }))
   }))
 

@@ -13,6 +13,10 @@ Clusters are defined in ``terraform/clusters.auto.tfvars``, keyed by the tools-b
 
 Stack role labels (e.g. ``pihole_core_pihole``) are added per node with ``labels``, the stacks work out their replica counts from them.
 
+Nodes with ``longhorn_disk`` get a second disk mounted at ``/var/mnt/longhorn`` and the ``node.longhorn.io/create-default-disk=true`` label. Install Longhorn with ``defaultDataPath: /var/mnt/longhorn`` and ``createDefaultDiskLabeledNodes: true`` so only those nodes store replicas. Pods on any node can use Longhorn volumes, the replica count is set per StorageClass (``numberOfReplicas``) and Longhorn spreads them across zones (Proxmox nodes) where it can.
+
+Node IPs are 192.168.111.11-99, 192.168.111.100-149 is kept for the LoadBalancer IPs kube-vip announces.
+
 VMIDs are per Proxmox node (``prx-001`` = 100-199, ``prx-002`` = 200-299, ...), X00-X09 for control planes, X10-X89 for workers and X90-X99 for the management VMs (counting down from X99).
 
 HA is handled by Kubernetes (a control plane and each worker pool on every ``prx-00x``), not Proxmox. The provider talks to a single Proxmox API, so the ``prx-00x`` hosts should be joined into one Proxmox cluster.

@@ -21,6 +21,8 @@ variable "nodes" {
     memory = number
     disk   = number
     labels = map(string)
+
+    longhorn_disk = optional(number)
   }))
 }
 

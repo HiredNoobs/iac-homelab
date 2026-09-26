@@ -29,6 +29,8 @@ locals {
     for name, node in var.nodes : name => merge(
       { "topology.kubernetes.io/zone" = local.hosts[name] },
       contains(keys(local.pools), name) ? { "${var.domain}/pool" = local.pools[name] } : {},
+      # Used with Longhorn's create-default-disk-labeled-nodes setting.
+      node.longhorn_disk != null ? { "node.longhorn.io/create-default-disk" = "true" } : {},
       node.labels,
     )
   }
@@ -82,6 +84,21 @@ resource "proxmox_virtual_environment_vm" "node" {
     iothread     = true
     discard      = "on"
     ssd          = true
+  }
+
+  # Longhorn's data disk (/dev/sdb), see the longhorn UserVolumeConfig.
+  dynamic "disk" {
+    for_each = each.value.longhorn_disk != null ? [each.value.longhorn_disk] : []
+
+    content {
+      datastore_id = var.vm_datastore
+      interface    = "scsi1"
+      file_format  = "raw"
+      size         = disk.value
+      iothread     = true
+      discard      = "on"
+      ssd          = true
+    }
   }
 
   network_device {
@@ -196,6 +213,33 @@ data "talos_machine_configuration" "node" {
         kind       = "Layer2VIPConfig"
         name       = var.vip
         link       = "net0"
+      }),
+    ] : [],
+    # Keeps Longhorn's replicas off the system disk, so a full volume can't cause evictions.
+    each.value.longhorn_disk != null ? [
+      yamlencode({
+        apiVersion = "v1alpha1"
+        kind       = "UserVolumeConfig"
+        name       = "longhorn"
+        provisioning = {
+          diskSelector = {
+            match = "disk.dev_path == \"/dev/sdb\""
+          }
+          minSize = "1GiB"
+          grow    = true
+        }
+      }),
+      yamlencode({
+        machine = {
+          kubelet = {
+            extraMounts = [{
+              destination = "/var/mnt/longhorn"
+              type        = "bind"
+              source      = "/var/mnt/longhorn"
+              options     = ["bind", "rshared", "rw"]
+            }]
+          }
+        }
       }),
     ] : []
   )
