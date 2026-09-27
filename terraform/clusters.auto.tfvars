@@ -70,6 +70,7 @@ clusters = {
           rabbitmq_core_broker    = ""
           contentbot_core_chatbot = ""
           contentbot_core_worker  = ""
+          homepage_core_homepage  = ""
         }
       }
 
@@ -86,6 +87,27 @@ clusters = {
         labels = {
           vault_core_vault             = ""
           vaultwarden_core_vaultwarden = ""
+        }
+      }
+
+      prx-001-srv-prod-core-worker-004 = {
+        vmid = 113
+        ip   = "192.168.111.15/24"
+
+        cores  = 4
+        memory = 4096
+        disk   = 20
+
+        longhorn_disk = 50
+
+        labels = {
+          grafana_core_grafana         = ""
+          grafana_core_victorialogs    = ""
+          grafana_core_victoriametrics = ""
+          grafana_core_vmagent         = ""
+          grafana_core_vmalert         = ""
+          grafana_core_alertmanager    = ""
+          rsyslog_core_rsyslog         = ""
         }
       }
     }
