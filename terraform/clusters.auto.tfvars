@@ -72,6 +72,22 @@ clusters = {
           contentbot_core_worker  = ""
         }
       }
+
+      prx-001-srv-prod-core-worker-003 = {
+        vmid = 112
+        ip   = "192.168.111.14/24"
+
+        cores  = 4
+        memory = 4096
+        disk   = 20
+
+        longhorn_disk = 50
+
+        labels = {
+          vault_core_vault             = ""
+          vaultwarden_core_vaultwarden = ""
+        }
+      }
     }
   }
 }
