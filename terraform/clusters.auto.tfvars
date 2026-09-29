@@ -87,6 +87,7 @@ clusters = {
         labels = {
           vault_core_vault             = ""
           vaultwarden_core_vaultwarden = ""
+          lldap_core_lldap             = ""
         }
       }
 
