@@ -1,0 +1,14 @@
+# Forgejo with Postgres (local socket, peer auth), behind nginx with the certbot certificate.
+# Git over SSH uses the system sshd as the git user, Forgejo manages its authorized_keys.
+
+- name: Setup Postgres
+  import_tasks: postgres.yml
+
+- name: Setup Forgejo
+  import_tasks: forgejo.yml
+
+- name: Setup nginx
+  import_tasks: nginx.yml
+
+- name: Register runners
+  import_tasks: runners.yml

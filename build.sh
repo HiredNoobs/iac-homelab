@@ -26,6 +26,8 @@ GITOPS_PLAYBOOKS=(
   monitoring.yml
   fail2ban.yml
   vault.yml
+  forgejo.yml
+  forgejo-runner.yml
 )
 
 # -----------------------------------------------------

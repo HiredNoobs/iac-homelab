@@ -1,0 +1,30 @@
+# Bump both together. The checksum is the release's forgejo-<version>-linux-amd64.sha256, check
+# the binary's .asc against the Forgejo release key (EB114F5E6C0DC2BCDD183550A4B61A2DC5923710).
+# 15.0 is the LTS line (supported until July 2027).
+forgejo_version: "15.0.9"
+forgejo_sha256: "04bf4981241cd7a39554809686d3e1811e219073cbf9a6ce6ed3895adfd8d17a"
+
+# The name clients use, also the certbot certificate's name.
+forgejo_domain: "git.{{ domain }}"
+
+forgejo_user: git
+forgejo_install_dir: /usr/local/bin
+forgejo_config_dir: /etc/forgejo
+forgejo_work_dir: /var/lib/forgejo
+# Only nginx talks to Forgejo, on localhost.
+forgejo_http_port: 3000
+
+# The first admin, created once. Its password is a bootstrap secret, change it in the UI after.
+forgejo_admin_username: "{{ admin_user | default('hirednoobs') }}"
+forgejo_admin_email: "{{ forgejo_admin_username }}@{{ domain }}"
+forgejo_admin_password_file: "{{ bootstrap_secrets_dir }}/forgejo-admin-password"
+
+# Webhook targets Forgejo may call: the internet and the lab VLAN (e.g. Flux's receiver).
+forgejo_webhook_allowed_hosts: "external,192.168.111.0/24"
+
+# Uploads through nginx, container image layers can be large.
+forgejo_max_body_size: 2g
+
+# Runners registered with a pre-shared secret, one per host in the runner group. Each needs
+# <bootstrap_secrets_dir>/forgejo-runner-<host>: 40 hex characters (openssl rand -hex 20).
+forgejo_runners: "{{ groups['runner'] | default([]) }}"

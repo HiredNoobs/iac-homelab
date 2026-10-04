@@ -1,0 +1,9 @@
+- name: restart forgejo
+  systemd:
+    name: forgejo
+    state: restarted
+
+- name: reload nginx
+  systemd:
+    name: nginx
+    state: reloaded

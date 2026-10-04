@@ -1,0 +1,8 @@
+---
+# After forgejo.yml, which registers each runner's secret on the server.
+- hosts: runner
+  become: yes
+  gather_facts: false
+  roles:
+    - common
+    - forgejo_runner

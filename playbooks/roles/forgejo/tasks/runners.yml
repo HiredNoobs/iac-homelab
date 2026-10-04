@@ -1,0 +1,13 @@
+# Each runner is registered with its own pre-shared secret, the forgejo_runner role creates the
+# matching .runner file from the same secret. The runner's ID comes from the secret, so every
+# runner needs a different one. 'register' is idempotent, the runner sends its own labels.
+- name: Register runners
+  become_user: "{{ forgejo_user }}"
+  command: >-
+    {{ forgejo_install_dir }}/forgejo --config {{ forgejo_config_dir }}/app.ini --work-path {{ forgejo_work_dir }}
+    forgejo-cli actions register --secret-stdin --name {{ item }}
+  args:
+    stdin: "{{ lookup('file', bootstrap_secrets_dir ~ '/forgejo-runner-' ~ item) }}"
+  loop: "{{ forgejo_runners }}"
+  changed_when: false
+  no_log: true
