@@ -10,4 +10,4 @@
     stdin: "{{ lookup('file', bootstrap_secrets_dir ~ '/forgejo-runner-' ~ item) }}"
   loop: "{{ forgejo_runners }}"
   changed_when: false
-  no_log: true
+  no_log: "{{ not (show_secrets | bool) }}"

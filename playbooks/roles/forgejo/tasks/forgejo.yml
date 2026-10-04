@@ -204,4 +204,4 @@
     --password {{ lookup('file', forgejo_admin_password_file) | quote }}
     --must-change-password=false
   when: forgejo_admin_username not in forgejo_admins.stdout.split()
-  no_log: true
+  no_log: "{{ not (show_secrets | bool) }}"

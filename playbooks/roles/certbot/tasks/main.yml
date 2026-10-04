@@ -22,7 +22,7 @@
     mode: '0600'
     content: |
       dns_cloudflare_api_token = {{ lookup('file', certbot_cloudflare_token_file) }}
-  no_log: true
+  no_log: "{{ not (show_secrets | bool) }}"
 
 # Only when there's no certificate yet, renewals are certbot.timer's job. Let's Encrypt no
 # longer sends expiry emails, so there's no account email.

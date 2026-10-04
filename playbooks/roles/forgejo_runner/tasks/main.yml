@@ -107,7 +107,7 @@
   args:
     chdir: "{{ forgejo_runner_work_dir }}"
     creates: "{{ forgejo_runner_work_dir }}/.runner"
-  no_log: true
+  no_log: "{{ not (show_secrets | bool) }}"
   notify: restart forgejo-runner
 
 - name: Create systemd service for forgejo-runner

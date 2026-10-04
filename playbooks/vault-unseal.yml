@@ -34,7 +34,7 @@
         stdin: "{{ item }}"
         stdin_add_newline: false
       loop: "{{ (lookup('file', vault_keys_file) | from_json)['keys'][:(vault_status.stdout | from_json).t] }}"
-      no_log: true
+      no_log: "{{ not (show_secrets | bool) }}"
       when: (vault_status.stdout | from_json).sealed
 
     - name: Check vault is unsealed

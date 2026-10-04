@@ -2,3 +2,7 @@
 # the Ansible controller in the repo's secrets/ (git ignored), never in Vault: they're needed
 # to rebuild Vault. See the README for the files.
 bootstrap_secrets_dir: "{{ playbook_dir }}/../secrets"
+
+# Tasks handling secrets hide their output (no_log), including their errors. To debug one, re-run
+# with -e show_secrets=true, the secrets are then printed too.
+show_secrets: false
