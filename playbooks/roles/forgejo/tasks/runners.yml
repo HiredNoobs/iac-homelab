@@ -8,6 +8,8 @@
     forgejo-cli actions register --secret-stdin --name {{ item }}
   args:
     stdin: "{{ lookup('file', bootstrap_secrets_dir ~ '/forgejo-runner-' ~ item) }}"
+    # The secret must be exactly 40 characters, without the newline Ansible adds by default.
+    stdin_add_newline: false
   loop: "{{ forgejo_runners }}"
   changed_when: false
   no_log: "{{ not (show_secrets | bool) }}"
