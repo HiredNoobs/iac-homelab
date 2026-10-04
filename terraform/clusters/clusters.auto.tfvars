@@ -35,7 +35,7 @@ clusters = {
         ip   = "192.168.111.11/24"
 
         cores  = 2
-        memory = 2048
+        memory = 4096
         disk   = 50
       }
 
@@ -44,7 +44,7 @@ clusters = {
         ip   = "192.168.111.12/24"
 
         cores  = 4
-        memory = 4096
+        memory = 6144
         disk   = 20
 
         longhorn_disk = 50
@@ -60,7 +60,7 @@ clusters = {
         ip   = "192.168.111.13/24"
 
         cores  = 4
-        memory = 4096
+        memory = 6144
         disk   = 20
 
         longhorn_disk = 50
@@ -79,7 +79,7 @@ clusters = {
         ip   = "192.168.111.14/24"
 
         cores  = 4
-        memory = 4096
+        memory = 6144
         disk   = 20
 
         longhorn_disk = 50
@@ -97,7 +97,7 @@ clusters = {
         ip   = "192.168.111.15/24"
 
         cores  = 4
-        memory = 4096
+        memory = 6144
         disk   = 20
 
         longhorn_disk = 50
