@@ -75,3 +75,7 @@
     name: nginx
     enabled: yes
     state: started
+
+# Apply the nginx (and forgejo) changes now, so a later failure doesn't leave the old config running.
+- name: Apply nginx changes
+  meta: flush_handlers
