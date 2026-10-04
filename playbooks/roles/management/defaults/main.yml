@@ -12,6 +12,7 @@ management_packages:
   - openssl
   - python3
   - rsync
+  - tmux
   - tree
   - unzip
   - yq
