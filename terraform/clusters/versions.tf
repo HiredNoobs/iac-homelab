@@ -1,6 +1,6 @@
 terraform {
-  # Write-only arguments (kubeconfig_wo) need 1.11+
-  required_version = ">= 1.11"
+  # Exact, upgrades are deliberate. Write-only arguments (kubeconfig_wo) need 1.11+.
+  required_version = "1.16.5"
 
   required_providers {
     proxmox = {
@@ -13,7 +13,7 @@ terraform {
     }
     local = {
       source  = "hashicorp/local"
-      version = "~> 2.5"
+      version = "2.9.1"
     }
   }
 }

@@ -1,0 +1,47 @@
+# Let's Encrypt certificates with the Cloudflare DNS-01 challenge, so the VMs don't need to be
+# reachable from the internet. Renewal is the certbot.timer from the Debian package, roles
+# using a certificate drop a hook in /etc/letsencrypt/renewal-hooks/deploy/ to pick it up.
+- name: Check certbot_domains is set
+  assert:
+    that: certbot_domains | length > 0
+    fail_msg: "certbot_domains is empty, set the names the certificate is for."
+    quiet: yes
+
+- name: Install certbot
+  apt:
+    name:
+      - certbot
+      - python3-certbot-dns-cloudflare
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Deploy Cloudflare credentials
+  copy:
+    dest: /etc/letsencrypt/cloudflare.ini
+    mode: '0600'
+    content: |
+      dns_cloudflare_api_token = {{ lookup('file', certbot_cloudflare_token_file) }}
+  no_log: true
+
+# Only when there's no certificate yet, renewals are certbot.timer's job. Let's Encrypt no
+# longer sends expiry emails, so there's no account email.
+- name: Request certificate
+  command: >-
+    certbot certonly
+    --non-interactive
+    --agree-tos
+    --register-unsafely-without-email
+    --dns-cloudflare
+    --dns-cloudflare-credentials /etc/letsencrypt/cloudflare.ini
+    --dns-cloudflare-propagation-seconds {{ certbot_propagation_seconds }}
+    --cert-name {{ certbot_domains[0] }}
+    {% for domain in certbot_domains %}-d {{ domain }} {% endfor %}
+  args:
+    creates: "/etc/letsencrypt/live/{{ certbot_domains[0] }}/fullchain.pem"
+
+- name: Enable certbot renewal timer
+  systemd:
+    name: certbot.timer
+    state: started
+    enabled: yes

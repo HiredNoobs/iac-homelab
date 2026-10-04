@@ -1,0 +1,216 @@
+# Single node Vault with raft storage. The role doesn't initialise Vault or unseal it, see the
+# README for initialising or restoring a snapshot, and vault-unseal.yml after every restart.
+
+# Vault's memory (unseal keys, tokens) mustn't be written to disk, mlock is off for raft.
+- name: Check there's no swap
+  command: swapon --show --noheadings
+  register: vault_swap
+  changed_when: false
+  failed_when: vault_swap.stdout | length > 0
+
+- name: Install unzip
+  apt:
+    name: unzip
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Ensure vault user exists
+  user:
+    name: "{{ vault_user }}"
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+    home: /var/lib/vault
+
+- name: Ensure config directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: "{{ vault_user }}"
+    mode: '0750'
+  loop:
+    - "{{ vault_config_dir }}"
+    - "{{ vault_config_dir }}/tls"
+
+- name: Ensure data directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ vault_user }}"
+    group: "{{ vault_user }}"
+    mode: '0700'
+  loop:
+    - /var/lib/vault
+    - "{{ vault_data_dir }}"
+
+# -----------------------------------------------------
+# Binary
+# -----------------------------------------------------
+
+- name: Get installed vault version
+  command: "{{ vault_install_dir }}/vault version"
+  register: vault_installed
+  changed_when: false
+  failed_when: false
+
+- block:
+    - name: Download vault archive
+      get_url:
+        url: "https://releases.hashicorp.com/vault/{{ vault_version }}/vault_{{ vault_version }}_linux_amd64.zip"
+        checksum: "sha256:{{ vault_sha256 }}"
+        dest: "/tmp/vault.zip"
+        mode: "0644"
+
+    - name: Ensure extract directory exists
+      file:
+        path: "/tmp/vault-{{ vault_version }}"
+        state: directory
+        mode: "0755"
+
+    - name: Extract vault
+      unarchive:
+        src: "/tmp/vault.zip"
+        dest: "/tmp/vault-{{ vault_version }}"
+        remote_src: yes
+
+    - name: Install vault binary
+      copy:
+        src: "/tmp/vault-{{ vault_version }}/vault"
+        dest: "{{ vault_install_dir }}/vault"
+        mode: "0755"
+        owner: root
+        group: root
+        remote_src: yes
+      notify: restart vault
+  when: ("Vault v" ~ vault_version ~ " ") not in vault_installed.stdout
+
+# -----------------------------------------------------
+# TLS
+# -----------------------------------------------------
+
+# The certbot role has requested the certificate, Vault gets its own copy so it doesn't need
+# access to /etc/letsencrypt. The deploy hook does the same on renewal.
+- name: Copy certificate
+  copy:
+    src: "/etc/letsencrypt/live/{{ vault_domain }}/{{ item.src }}"
+    dest: "{{ vault_config_dir }}/tls/{{ item.dest }}"
+    owner: root
+    group: "{{ vault_user }}"
+    mode: '0640'
+    remote_src: yes
+  loop:
+    - { src: fullchain.pem, dest: vault.crt }
+    - { src: privkey.pem, dest: vault.key }
+  loop_control:
+    label: "{{ item.dest }}"
+  notify: reload vault
+
+- name: Deploy certbot renewal hook
+  copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/vault
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (vault). Copies the renewed certificate for Vault and reloads it.
+      [ "$RENEWED_LINEAGE" = "/etc/letsencrypt/live/{{ vault_domain }}" ] || exit 0
+      install -o root -g {{ vault_user }} -m 0640 "$RENEWED_LINEAGE/fullchain.pem" {{ vault_config_dir }}/tls/vault.crt
+      install -o root -g {{ vault_user }} -m 0640 "$RENEWED_LINEAGE/privkey.pem" {{ vault_config_dir }}/tls/vault.key
+      systemctl reload vault
+
+# -----------------------------------------------------
+# Service
+# -----------------------------------------------------
+
+# Ported from stack-vault's vault.json. Changes need a restart, which seals Vault.
+- name: Deploy vault config
+  copy:
+    dest: "{{ vault_config_dir }}/vault.hcl"
+    owner: root
+    group: "{{ vault_user }}"
+    mode: '0640'
+    content: |
+      # Managed by Ansible (vault).
+      ui                = true
+      disable_mlock     = true
+      default_lease_ttl = "168h"
+      max_lease_ttl     = "720h"
+
+      api_addr     = "https://{{ vault_domain }}"
+      cluster_addr = "https://{{ ansible_host }}:{{ vault_cluster_port }}"
+
+      listener "tcp" {
+        address                  = "0.0.0.0:{{ vault_port }}"
+        cluster_address          = "0.0.0.0:{{ vault_cluster_port }}"
+        tls_cert_file            = "{{ vault_config_dir }}/tls/vault.crt"
+        tls_key_file             = "{{ vault_config_dir }}/tls/vault.key"
+        tls_disable_client_certs = true
+
+        telemetry {
+          unauthenticated_metrics_access = true
+        }
+      }
+
+      storage "raft" {
+        path    = "{{ vault_data_dir }}"
+        node_id = "{{ inventory_hostname }}"
+      }
+
+      telemetry {
+        prometheus_retention_time = "30s"
+        disable_hostname          = true
+      }
+  notify: restart vault
+
+# CAP_NET_BIND_SERVICE for 443. No CAP_IPC_LOCK, mlock is disabled.
+- name: Create systemd service for vault
+  copy:
+    dest: /etc/systemd/system/vault.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=HashiCorp Vault
+      Wants=network-online.target
+      After=network-online.target
+      ConditionFileNotEmpty={{ vault_config_dir }}/vault.hcl
+
+      [Service]
+      User={{ vault_user }}
+      Group={{ vault_user }}
+      ExecStart={{ vault_install_dir }}/vault server -config={{ vault_config_dir }}/vault.hcl
+      ExecReload=/bin/kill --signal HUP $MAINPID
+      KillMode=process
+      KillSignal=SIGINT
+      Restart=on-failure
+      RestartSec=5
+      TimeoutStopSec=30
+      LimitNOFILE=65536
+      AmbientCapabilities=CAP_NET_BIND_SERVICE
+      CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+      NoNewPrivileges=yes
+      ProtectSystem=full
+      ProtectHome=yes
+      PrivateTmp=yes
+      PrivateDevices=yes
+
+      [Install]
+      WantedBy=multi-user.target
+  notify:
+    - reload systemd
+    - restart vault
+
+- name: Configure vault CLI
+  copy:
+    dest: /etc/profile.d/vault.sh
+    mode: '0644'
+    content: |
+      # Managed by Ansible (vault). The certificate is for {{ vault_domain }}, not the IP.
+      export VAULT_ADDR="{{ vault_cli_addr }}"
+      export VAULT_TLS_SERVER_NAME="{{ vault_domain }}"
+
+- name: Enable vault
+  systemd:
+    name: vault
+    enabled: yes
+    state: started

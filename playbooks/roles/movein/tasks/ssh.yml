@@ -1,5 +1,5 @@
-# Each host gets its own keypair, which is authorized on every other host in the
-# same group so they can jump between each other.
+# Each host gets its own keypair. Only the mgmt hosts' keys are authorized on the other
+# hosts, so mgmt can jump anywhere but a compromised VM can't reach mgmt, which holds credentials.
 - name: Generate SSH keypair
   user:
     name: "{{ movein_username }}"
@@ -8,12 +8,12 @@
     ssh_key_file: ".ssh/id_ed25519"
   register: movein_ssh_key
 
-- name: Authorize keys between hosts
+- name: Authorize mgmt keys
   authorized_key:
     user: "{{ movein_username }}"
     key: "{{ hostvars[item].movein_ssh_key.ssh_public_key }}"
     state: present
-  loop: "{{ ansible_play_hosts }}"
+  loop: "{{ ansible_play_hosts | intersect(groups['mgmt'] | default([])) }}"
   when: item != inventory_hostname
 
 # Key only, Ansible connects as movein_username with the key cloud-init authorized.

@@ -1,0 +1,4 @@
+# Secrets for bootstrapping prx-999 (Cloudflare token, Vault's keys.json, ...). Local files on
+# the Ansible controller in the repo's secrets/ (git ignored), never in Vault: they're needed
+# to rebuild Vault. See the README for the files.
+bootstrap_secrets_dir: "{{ playbook_dir }}/../secrets"

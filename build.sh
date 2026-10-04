@@ -3,25 +3,50 @@
 THIS=$(realpath "$0")
 HERE=$(dirname "$THIS")
 
+# Terraform root in terraform/, also the Ansible group its hosts are in.
+ROOT=""
+
 # Passed to every ansible-playbook run.
 ANSIBLE_ARGS=()
+
+# Playbooks run after each root's Terraform, in order.
+CLUSTERS_PLAYBOOKS=(
+  readycheck.yml
+  movein.yml
+  patch.yml
+  monitoring.yml
+  fail2ban.yml
+  mgmt.yml
+)
+
+GITOPS_PLAYBOOKS=(
+  readycheck.yml
+  movein.yml
+  patch.yml
+  monitoring.yml
+  fail2ban.yml
+  vault.yml
+)
 
 # -----------------------------------------------------
 # Functions
 # -----------------------------------------------------
 
 function usage {
-  echo "Usage: $(basename "$0") [--refresh-keys]"
+  echo "Usage: $(basename "$0") <clusters|gitops> [--refresh-keys]"
   echo
+  echo "  clusters        The prx-00x Talos clusters and their management VMs."
+  echo "  gitops          The prx-999 VMs (Vault, Forgejo, runners)."
   echo "  --refresh-keys  Forget the hosts' old SSH host keys before connecting, for rebuilt VMs."
 }
 
 function run_terraform {
   local confirm
 
-  cd "$HERE/terraform" || exit 1
+  cd "$HERE/terraform/$ROOT" || exit 1
 
-  terraform init -upgrade
+  # Providers come from the committed .terraform.lock.hcl, bump them deliberately.
+  terraform init
   terraform validate || exit 1
   # Saved so the apply is exactly what was reviewed, it contains secrets and is git ignored.
   terraform plan -out=tfplan || exit 1
@@ -46,7 +71,8 @@ function run_playbooks {
   cd "$HERE/playbooks" || exit 1
   for playbook in "$@"; do
     echo "Running $playbook..."
-    ansible-playbook "$playbook" "${ANSIBLE_ARGS[@]}" || {
+    # The inventory holds every root's hosts, only touch this root's.
+    ansible-playbook "$playbook" --limit "$ROOT" "${ANSIBLE_ARGS[@]}" || {
       echo "$playbook failed, aborting."
       exit 1
     }
@@ -60,18 +86,21 @@ function run_playbooks {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    clusters|gitops) ROOT="$1"; shift;;
     --refresh-keys) ANSIBLE_ARGS+=(-e refresh_host_keys=true); shift;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown option: $1"; usage; exit 1;;
   esac
 done
 
+if [[ -z "$ROOT" ]]; then
+  usage
+  exit 1
+fi
+
 run_terraform
 
-run_playbooks \
-  readycheck.yml \
-  movein.yml \
-  patch.yml \
-  monitoring.yml \
-  fail2ban.yml \
-  mgmt.yml
+case "$ROOT" in
+  clusters) run_playbooks "${CLUSTERS_PLAYBOOKS[@]}";;
+  gitops) run_playbooks "${GITOPS_PLAYBOOKS[@]}";;
+esac

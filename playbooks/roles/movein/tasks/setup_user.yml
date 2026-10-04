@@ -2,7 +2,7 @@
 - name: Run movein.sh script
   shell: |
     set -o pipefail
-    curl -fsSL https://raw.githubusercontent.com/HiredNoobs/tools-bin/refs/heads/master/bin/movein.sh \
+    curl -fsSL https://raw.githubusercontent.com/HiredNoobs/tools-bin/{{ tools_bin_version }}/bin/movein.sh \
       | bash -s {{ movein_username }}
   args:
     executable: /bin/bash

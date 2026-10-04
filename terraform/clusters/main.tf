@@ -54,7 +54,7 @@ resource "proxmox_download_file" "talos" {
 # -----------------------------------------------------
 
 module "cluster" {
-  source   = "./modules/talos-cluster"
+  source   = "../modules/talos-cluster"
   for_each = var.clusters
 
   context = each.key
@@ -95,7 +95,7 @@ resource "proxmox_download_file" "debian" {
 }
 
 module "management" {
-  source   = "./modules/debian-vm"
+  source   = "../modules/debian-vm"
   for_each = var.management_hosts
 
   name        = each.key
@@ -127,9 +127,10 @@ module "management" {
 # -----------------------------------------------------
 
 # Ansible runs on this host after Terraform (see build.sh), the talosconfigs are
-# copied to the management VMs from here.
+# copied to the management VMs from here. Ansible merges every file in playbooks/inventory/,
+# so the talosconfigs stay available to mgmt hosts created by the gitops root.
 resource "local_file" "ansible_inventory" {
-  filename        = "${path.module}/../playbooks/inventory.generated.yml"
+  filename        = "${path.module}/../../playbooks/inventory/clusters.generated.yml"
   file_permission = "0644"
 
   content = yamlencode({
@@ -141,11 +142,16 @@ resource "local_file" "ansible_inventory" {
         talosconfigs = { for context, cluster in module.cluster : context => cluster.talosconfig_path }
       }
       children = {
-        mgmt = {
-          hosts = {
-            for name, host in module.management : name => {
-              ansible_host = host.ip
-              ansible_user = var.admin_user
+        # Everything this root creates, build.sh limits the playbooks to it.
+        clusters = {
+          children = {
+            mgmt = {
+              hosts = {
+                for name, host in module.management : name => {
+                  ansible_host = host.ip
+                  ansible_user = var.admin_user
+                }
+              }
             }
           }
         }

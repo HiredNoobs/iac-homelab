@@ -1,0 +1,44 @@
+---
+# Unseals Vault after a restart (reboot, patch.yml, a config change). Run it from playbooks/:
+#   ansible-playbook vault-unseal.yml
+# The keys are read from keys.json on the controller and only sent over SSH, they're passed
+# to the vault CLI on stdin so they don't show up in process lists.
+- hosts: vault
+  become: yes
+  gather_facts: false
+  environment:
+    VAULT_ADDR: "{{ vault_cli_addr }}"
+    VAULT_TLS_SERVER_NAME: "{{ vault_domain }}"
+  # vault_cli_addr and vault_domain, without running the role.
+  vars_files:
+    - roles/vault/defaults/main.yml
+  vars:
+    vault_keys_file: "{{ bootstrap_secrets_dir }}/vault-keys.json"
+  tasks:
+    - name: Check vault status
+      command: vault status -format=json
+      register: vault_status
+      changed_when: false
+      failed_when: vault_status.rc not in [0, 2]
+
+    - name: Check vault is initialised
+      assert:
+        that: (vault_status.stdout | from_json).initialized
+        fail_msg: "Vault isn't initialised, see the README for initialising or restoring a snapshot."
+        quiet: yes
+
+    # 'vault operator unseal' can't read the key from stdin, 'vault write' can with key=-.
+    - name: Unseal vault
+      command: vault write -format=json sys/unseal key=-
+      args:
+        stdin: "{{ item }}"
+        stdin_add_newline: false
+      loop: "{{ (lookup('file', vault_keys_file) | from_json)['keys'][:(vault_status.stdout | from_json).t] }}"
+      no_log: true
+      when: (vault_status.stdout | from_json).sealed
+
+    - name: Check vault is unsealed
+      command: vault status -format=json
+      register: vault_unsealed
+      changed_when: false
+      failed_when: vault_unsealed.rc != 0
