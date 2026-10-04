@@ -1,5 +1,9 @@
-# The scoped token from the prx-999 host runbook (README), e.g. "terraform@pve!gitops=<uuid>".
-variable "proxmox_api_token" {
+# Same as the clusters root for now (root@pam), a scoped API token can replace it later.
+variable "pm_user" {
+  type = string
+}
+
+variable "pm_password" {
   type      = string
   sensitive = true
 }

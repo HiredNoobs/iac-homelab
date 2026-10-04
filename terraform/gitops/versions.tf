@@ -16,7 +16,8 @@ terraform {
 
 # prx-999 is a standalone Proxmox node, not part of the prx-00x cluster, so it has its own API.
 provider "proxmox" {
-  endpoint  = var.proxmox_endpoint
-  api_token = var.proxmox_api_token
-  insecure  = true
+  endpoint = var.proxmox_endpoint
+  username = var.pm_user
+  password = var.pm_password
+  insecure = true
 }

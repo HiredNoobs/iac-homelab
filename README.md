@@ -68,16 +68,7 @@ Nothing is automated on the Proxmox host itself.
 1. Install Proxmox VE: node name ``prx-999``, IP ``192.168.111.9/24``, gateway ``192.168.111.1``, bridge ``vmbr0``. Don't join it to the ``prx-00x`` cluster.
 2. Disable the enterprise repositories, enable ``pve-no-subscription``, then ``apt update && apt full-upgrade``.
 3. Keep the default storage: ``local`` (directory, needs the "ISO image" content type for the Debian image) and ``local-lvm`` (LVM-thin, VM disks).
-4. Create the API user and token Terraform uses, with only the privileges bpg/proxmox needs (check its docs for the provider version in ``terraform/gitops/versions.tf``):
-
-   ```bash
-   pveum role add TerraformGitops -privs "<privileges from the bpg/proxmox docs>"
-   pveum user add terraform@pve
-   pveum aclmod / -user terraform@pve -role TerraformGitops
-   pveum user token add terraform@pve gitops --privsep 0
-   ```
-
-   Save the token as ``proxmox-gitops-token`` in the bootstrap secrets (below).
+4. Terraform uses ``root@pam`` with its password, the same as the clusters root (a scoped API token may replace it later).
 5. Router DNS records (``/jffs/configs/dnsmasq.conf.add``, documented in ``HiredNoobs/documentation/network/router.md``), only the essential ones: ``vault.hirednoobs.com`` -> ``192.168.111.202``, added when Vault is cut over.
 
 ### Bootstrap secrets
@@ -86,7 +77,6 @@ prx-999 can't depend on Vault, so its own secrets are files on the Ansible contr
 
 | File | Used for |
 | --- | --- |
-| ``proxmox-gitops-token`` | ``TF_VAR_proxmox_api_token`` for the gitops root. |
 | ``cloudflare-api-token`` | certbot's DNS-01 challenge. A Cloudflare token with only Zone.DNS:Edit on ``hirednoobs.com``. |
 | ``vault-keys.json`` | Vault's unseal keys and root token (``keys``, ``keys_base64``, ``root_token``). Keep a copy on the NAS and offline. |
 
@@ -103,7 +93,8 @@ ansible-playbook vault-unseal.yml
 A new, empty Vault is initialised by hand on the VM, then unsealed with the playbook:
 
 ```bash
-vault operator init -key-shares=4 -key-threshold=3 -format=json   | jq '{keys: .unseal_keys_hex, keys_base64: .unseal_keys_b64, root_token: .root_token}'
+vault operator init -key-shares=4 -key-threshold=3 -format=json \
+  | jq '{keys: .unseal_keys_hex, keys_base64: .unseal_keys_b64, root_token: .root_token}'
 # Save the output as vault-keys.json in the bootstrap secrets.
 ```
 
@@ -147,17 +138,11 @@ Install Terraform (the exact ``required_version`` in ``terraform/*/versions.tf``
 sudo pacman -S terraform ansible
 ```
 
-Set env vars, for the clusters root:
+Set env vars, both roots use the root account of the Proxmox API they talk to (``prx-001`` for clusters, ``prx-999`` for gitops), set the password for the root being built:
 
 ```bash
 export TF_VAR_pm_user="root@pam"
 export TF_VAR_pm_password="password"
-```
-
-For the gitops root, from the root of this repo:
-
-```bash
-export TF_VAR_proxmox_api_token="$(cat secrets/proxmox-gitops-token)"
 ```
 
 Build a root, this shows the plan and asks before applying it (one resource at a time, see upgrades), then runs that root's playbooks on its hosts:
