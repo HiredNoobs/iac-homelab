@@ -5,8 +5,6 @@ locals {
       for name in keys(cluster.nodes) : regex("^(prx-[0-9]+)-", name)[0]
     ]
   ]))
-
-  management_nodes = { for name in keys(var.management_hosts) : name => regex("^(prx-[0-9]+)-", name)[0] }
 }
 
 # -----------------------------------------------------
@@ -79,56 +77,12 @@ module "cluster" {
 }
 
 # -----------------------------------------------------
-# Management
-# -----------------------------------------------------
-
-# Only used to create VMs, they're patched in place by Ansible.
-resource "proxmox_download_file" "debian" {
-  for_each = toset(values(local.management_nodes))
-
-  node_name    = each.key
-  content_type = "iso"
-  datastore_id = var.image_datastore
-  file_name    = "debian-13-genericcloud-amd64.img"
-  url          = var.debian_image_url
-  overwrite    = false
-}
-
-module "management" {
-  source   = "../modules/debian-vm"
-  for_each = var.management_hosts
-
-  name        = each.key
-  node_name   = local.management_nodes[each.key]
-  vmid        = each.value.vmid
-  tags        = ["debian", "mgmt"]
-  description = "Management jumpbox, managed by iac-homelab."
-
-  ip     = each.value.ip
-  cores  = each.value.cores
-  memory = each.value.memory
-  disk   = each.value.disk
-
-  domain      = var.domain
-  gateway     = var.gateway
-  nameservers = var.nameservers
-  bridge      = var.bridge
-  vlan_id     = var.vlan_id
-
-  vm_datastore  = var.vm_datastore
-  image_file_id = proxmox_download_file.debian[local.management_nodes[each.key]].id
-
-  admin_user      = var.admin_user
-  ssh_public_keys = [trimspace(file(pathexpand(var.ssh_public_key_file)))]
-}
-
-# -----------------------------------------------------
 # Ansible
 # -----------------------------------------------------
 
-# Ansible runs on this host after Terraform (see build.sh), the talosconfigs are
-# copied to the management VMs from here. Ansible merges every file in playbooks/inventory/,
-# so the talosconfigs stay available to mgmt hosts created by the gitops root.
+# No hosts, the management VMs are in the gitops root. Ansible merges every file in
+# playbooks/inventory/, so mgmt.yml copies these talosconfigs to them (build.sh clusters runs it
+# after an apply).
 resource "local_file" "ansible_inventory" {
   filename        = "${path.module}/../../playbooks/inventory/clusters.generated.yml"
   file_permission = "0644"
@@ -138,23 +92,7 @@ resource "local_file" "ansible_inventory" {
       vars = {
         domain       = var.domain
         nameservers  = var.nameservers
-        admin_user   = var.admin_user
         talosconfigs = { for context, cluster in module.cluster : context => cluster.talosconfig_path }
-      }
-      children = {
-        # Everything this root creates, build.sh limits the playbooks to it.
-        clusters = {
-          children = {
-            mgmt = {
-              hosts = {
-                for name, host in module.management : name => {
-                  ansible_host = host.ip
-                  ansible_user = var.admin_user
-                }
-              }
-            }
-          }
-        }
       }
     }
   })

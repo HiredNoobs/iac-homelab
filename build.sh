@@ -3,22 +3,22 @@
 THIS=$(realpath "$0")
 HERE=$(dirname "$THIS")
 
-# Terraform root in terraform/, also the Ansible group its hosts are in.
+# Terraform root in terraform/.
 ROOT=""
 
 # Passed to every ansible-playbook run.
 ANSIBLE_ARGS=()
 
-# Playbooks run after each root's Terraform, in order.
+# Playbooks run after each root's Terraform, in order, limited to the hosts in LIMIT.
+#
+# The clusters root has no hosts of its own, mgmt.yml copies its talosconfigs to the management
+# VMs (in the gitops root) and refreshes their kubeconfigs.
+CLUSTERS_LIMIT=mgmt
 CLUSTERS_PLAYBOOKS=(
-  readycheck.yml
-  movein.yml
-  patch.yml
-  monitoring.yml
-  fail2ban.yml
   mgmt.yml
 )
 
+GITOPS_LIMIT=gitops
 GITOPS_PLAYBOOKS=(
   readycheck.yml
   movein.yml
@@ -28,6 +28,7 @@ GITOPS_PLAYBOOKS=(
   vault.yml
   forgejo.yml
   forgejo-runner.yml
+  mgmt.yml
 )
 
 # -----------------------------------------------------
@@ -37,8 +38,8 @@ GITOPS_PLAYBOOKS=(
 function usage {
   echo "Usage: $(basename "$0") <clusters|gitops> [--refresh-keys]"
   echo
-  echo "  clusters        The prx-00x Talos clusters and their management VMs."
-  echo "  gitops          The prx-999 VMs (Vault, Forgejo, runners)."
+  echo "  clusters        The prx-00x Talos clusters, then mgmt.yml on the management VMs."
+  echo "  gitops          The prx-999 VMs (management, Vault, Forgejo, runners)."
   echo "  --refresh-keys  Forget the hosts' old SSH host keys before connecting, for rebuilt VMs."
 }
 
@@ -70,11 +71,23 @@ function run_terraform {
 }
 
 function run_playbooks {
+  local limit="$1" hosts
+  shift
+
   cd "$HERE/playbooks" || exit 1
+
+  # e.g. no management VM yet, while it's being replaced.
+  hosts=$(ansible "$limit" --list-hosts 2> /dev/null | grep -c "^    [^ ]")
+  if [[ -z "$hosts" || "$hosts" == "0" ]]; then
+    echo "No hosts in '$limit', skipping the playbooks."
+    cd "$HERE" || exit 1
+    return 0
+  fi
+
   for playbook in "$@"; do
     echo "Running $playbook..."
-    # The inventory holds every root's hosts, only touch this root's.
-    ansible-playbook "$playbook" --limit "$ROOT" "${ANSIBLE_ARGS[@]}" || {
+    # The inventory holds every root's hosts, only touch these.
+    ansible-playbook "$playbook" --limit "$limit" "${ANSIBLE_ARGS[@]}" || {
       echo "$playbook failed, aborting."
       exit 1
     }
@@ -103,6 +116,6 @@ fi
 run_terraform
 
 case "$ROOT" in
-  clusters) run_playbooks "${CLUSTERS_PLAYBOOKS[@]}";;
-  gitops) run_playbooks "${GITOPS_PLAYBOOKS[@]}";;
+  clusters) run_playbooks "$CLUSTERS_LIMIT" "${CLUSTERS_PLAYBOOKS[@]}";;
+  gitops) run_playbooks "$GITOPS_LIMIT" "${GITOPS_PLAYBOOKS[@]}";;
 esac

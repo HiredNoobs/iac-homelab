@@ -6,10 +6,18 @@
 # count down from 999, everything else counts up from 900. IPs in 192.168.111.0/24:
 #   .200 - .249  Servers, counting up
 #   .250 - .254  Management VMs, counting down from .254
-#
-# prx-999-srv-mgmt-001 (999, .254) is added when it replaces prx-001-srv-mgmt-001, which
-# holds .254 until then.
 servers = {
+  # The jumpbox: tools-bin, talosctl and kubectl for every cluster (mgmt.yml), and later the
+  # infra runner, the only place with the Proxmox and Talos credentials.
+  prx-999-srv-mgmt-001 = {
+    vmid = 999
+    ip   = "192.168.111.254/24"
+
+    cores  = 2
+    memory = 4096
+    disk   = 30
+  }
+
   prx-999-srv-git-001 = {
     vmid = 900
     ip   = "192.168.111.200/24"

@@ -9,13 +9,13 @@
 # VMIDs are allocated per Proxmox node (prx-001 = 100-199, prx-002 = 200-299, ...):
 #   X00 - X09  Control planes
 #   X10 - X89  Workers
-#   X90 - X99  Management VMs, counting down from X99 (see management.auto.tfvars)
+#   X90 - X99  Unused, previously the management VMs (now on prx-999, terraform/gitops)
 #
 # IPs in 192.168.111.0/24:
 #   .10          Kubernetes API VIP
 #   .11  - .99   Nodes
 #   .100 - .149  LoadBalancer IPs, announced by kube-vip (stack-kube-vip)
-#   .250 - .254  Management VMs, counting down from .254
+#   .200 - .254  prx-999 VMs (terraform/gitops), the management VMs count down from .254
 #
 # Extra labels can be added per node with `labels`.
 #

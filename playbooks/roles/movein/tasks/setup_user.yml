@@ -1,23 +1,55 @@
 # The user already exists (created by cloud-init), this clones tools-bin and installs its deps.
-- name: Run movein.sh script
-  shell: |
-    set -o pipefail
-    curl -fsSL https://raw.githubusercontent.com/HiredNoobs/tools-bin/{{ tools_bin_version }}/bin/movein.sh \
-      | bash -s {{ movein_username }}
-  args:
-    executable: /bin/bash
-    creates: "/home/{{ movein_username }}/tools-bin/.git"
-  register: movein_script
-
-- name: Check out tools-bin
-  become_user: "{{ movein_username }}"
-  git:
-    repo: "{{ tools_bin_repo }}"
-    dest: "/home/{{ movein_username }}/tools-bin"
-    version: "{{ tools_bin_version }}"
-  register: tools_bin_checkout
-
 - name: Setup tools-bin
-  become_user: "{{ movein_username }}"
-  command: "/home/{{ movein_username }}/tools-bin/bin/setup {{ tools_bin_setup | join(' ') }}"
-  when: movein_script.changed or tools_bin_checkout.changed
+  when: movein_tools_bin | bool
+  block:
+    - name: Run movein.sh script
+      shell: |
+        set -o pipefail
+        curl -fsSL https://raw.githubusercontent.com/HiredNoobs/tools-bin/{{ tools_bin_version }}/bin/movein.sh \
+          | bash -s {{ movein_username }}
+      args:
+        executable: /bin/bash
+        creates: "/home/{{ movein_username }}/tools-bin/.git"
+      register: movein_script
+
+    - name: Check out tools-bin
+      become_user: "{{ movein_username }}"
+      git:
+        repo: "{{ tools_bin_repo }}"
+        dest: "/home/{{ movein_username }}/tools-bin"
+        version: "{{ tools_bin_version }}"
+      register: tools_bin_checkout
+
+    - name: Run tools-bin setup
+      become_user: "{{ movein_username }}"
+      command: "/home/{{ movein_username }}/tools-bin/bin/setup {{ tools_bin_setup | join(' ') }}"
+      when: movein_script.changed or tools_bin_checkout.changed
+
+# Servers built before tools-bin was mgmt only: back to Debian's shell config. vim and tmux and
+# their config are left, they're harmless.
+- name: Remove tools-bin
+  when: not (movein_tools_bin | bool)
+  block:
+    - name: Remove the tools-bin checkout and its bash config
+      file:
+        path: "/home/{{ movein_username }}/{{ item }}"
+        state: absent
+      loop:
+        - tools-bin
+        - .config/bashrc
+
+    - name: Check for the tools-bin bashrc loader
+      command: grep -q "BASHRC LOADER" /home/{{ movein_username }}/.bashrc
+      register: movein_tools_bin_bashrc
+      changed_when: false
+      failed_when: false
+
+    - name: Restore Debian's .bashrc
+      copy:
+        src: /etc/skel/.bashrc
+        dest: "/home/{{ movein_username }}/.bashrc"
+        remote_src: yes
+        owner: "{{ movein_username }}"
+        group: "{{ movein_username }}"
+        mode: '0644'
+      when: movein_tools_bin_bashrc.rc == 0

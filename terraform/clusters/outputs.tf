@@ -10,7 +10,3 @@ output "clusters" {
     }
   }
 }
-
-output "management_hosts" {
-  value = { for name, host in module.management : name => host.ip }
-}
