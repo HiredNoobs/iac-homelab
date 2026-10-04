@@ -1,10 +1,11 @@
 movein_username: "{{ admin_user | default('hirednoobs') }}"
 
-# Commit of tools-bin to check out after movein.sh has cloned it, movein.sh is fetched at the
-# same commit. A SHA so a push to tools-bin can't change the VMs, bump it deliberately.
+# Branch of tools-bin to check out after movein.sh has cloned it, movein.sh is fetched from the
+# same branch. A branch rather than a commit, so the VMs follow tools-bin and it isn't left on a
+# detached HEAD.
 tools_bin_repo: https://github.com/HiredNoobs/tools-bin.git
-# k8s-deployment branch, switch to a master commit once it's merged.
-tools_bin_version: b63e35c93284d12f514b6fb8f7c26fffb3cfbff5
+# TODO: Switch back to master once tools-bin's k8s-deployment branch is merged.
+tools_bin_version: k8s-deployment
 
 # tools-bin `setup` commands run as movein_username.
 tools_bin_setup: [bash, vim, tmux]
