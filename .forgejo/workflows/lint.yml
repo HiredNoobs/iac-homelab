@@ -53,7 +53,7 @@ jobs:
       # The committed lock files pin the providers, no backend (and no state) is needed to validate.
       - name: Terraform validate
         run: |
-          for root in clusters gitops; do
+          for root in clusters gitops vault; do
             echo "::group::$root"
             terraform -chdir="terraform/$root" init -backend=false -input=false
             terraform -chdir="terraform/$root" validate

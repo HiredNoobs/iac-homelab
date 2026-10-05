@@ -32,15 +32,18 @@ GITOPS_PLAYBOOKS=(
   mgmt.yml
 )
 
+# Vault's config has no hosts, nothing runs after it.
+
 # -----------------------------------------------------
 # Functions
 # -----------------------------------------------------
 
 function usage {
-  echo "Usage: $(basename "$0") <clusters|gitops> [--refresh-keys]"
+  echo "Usage: $(basename "$0") <clusters|gitops|vault> [--refresh-keys]"
   echo
   echo "  clusters        The prx-00x Talos clusters, then mgmt.yml on the management VMs."
   echo "  gitops          The prx-999 VMs (management, Vault, Forgejo, runners)."
+  echo "  vault           Vault's config (secret engines, policies, auth), Vault must be unsealed."
   echo "  --refresh-keys  Forget the hosts' old SSH host keys before connecting, for rebuilt VMs."
 }
 
@@ -102,7 +105,7 @@ function run_playbooks {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    clusters|gitops) ROOT="$1"; shift;;
+    clusters|gitops|vault) ROOT="$1"; shift;;
     --refresh-keys) ANSIBLE_ARGS+=(-e refresh_host_keys=true); shift;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown option: $1"; usage; exit 1;;
@@ -112,6 +115,12 @@ done
 if [[ -z "$ROOT" ]]; then
   usage
   exit 1
+fi
+
+# The root token, unless another token was given.
+if [[ "$ROOT" == "vault" && -z "${VAULT_TOKEN:-}" ]]; then
+  VAULT_TOKEN=$(jq -r .root_token "$HERE/secrets/vault-keys.json") || exit 1
+  export VAULT_TOKEN
 fi
 
 run_terraform

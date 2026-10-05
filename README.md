@@ -6,6 +6,7 @@ Terraform and Ansible for the homelab: the Talos Kubernetes clusters on the ``pr
 | --- | --- | --- |
 | ``terraform/clusters/`` | The Talos clusters. | ``mgmt.yml`` on the management VMs, to copy the new talosconfigs. |
 | ``terraform/gitops/`` | The ``prx-999`` Debian VMs. | All of them, on the ``prx-999`` VMs. |
+| ``terraform/vault/`` | Vault's config: secret engines, policies, auth (Kubernetes for ESO). | None. |
 
 Each root has its own state and writes its part of the Ansible inventory to ``playbooks/inventory/``. Nothing in the clusters root depends on ``prx-999``, so the clusters can always be rebuilt from a workstation.
 
@@ -20,6 +21,9 @@ export TF_VAR_pm_password="<password for that root's Proxmox>"
 # plan, confirm, apply, then the playbooks
 ./build.sh <clusters|gitops> [--refresh-keys]
 ./teardown.sh <clusters|gitops>
+
+# Vault must be unsealed, logs in with the root token from secrets/vault-keys.json (or VAULT_TOKEN)
+./build.sh vault
 ```
 
 - ``--refresh-keys`` forgets the old SSH host keys, for rebuilt VMs.
@@ -76,6 +80,21 @@ A new, empty Vault is initialised on the VM, save the output as ``secrets/vault-
 vault operator init -key-shares=4 -key-threshold=3 -format=json \
   | jq '{keys: .unseal_keys_hex, keys_base64: .unseal_keys_b64, root_token: .root_token}'
 ```
+
+### Vault config
+
+``terraform/vault/`` configures Vault, not the VM, so it's its own root: the provider needs Vault up and unsealed to plan. It manages the ``lab`` (kv) and ``labv2`` (kv v2) engines, the userpass auth mount, the policies and a Kubernetes auth mount per cluster (``kubernetes/<cluster>``) for External Secrets Operator in iac-k8s. ESO can only read ``labv2/<environment>/*``. The secrets aren't managed here.
+
+- Each cluster in ``clusters.auto.tfvars`` needs its API server's CA, from the management VM. The CA is public, commit it. Re-run it if the cluster is rebuilt:
+
+  ```bash
+  kubectl --kubeconfig "$KUBE_CONTEXTS/production.core.yaml" config view --raw \
+    -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d \
+    > terraform/vault/clusters/production-core-ca.crt
+  ```
+
+- ``imports.tf`` imports what stack-vault created. Check the plan only imports them (and shows no replacement), then delete the file after the first apply. The mounts can't be destroyed by Terraform (``prevent_destroy``), replacing one deletes its secrets.
+- Users are added by hand, so their passwords stay out of the state: ``vault write auth/userpass/users/<name> token_policies=lab-policy,labv2-policy password=-`` (reads the password from stdin).
 
 ### Forgejo
 
