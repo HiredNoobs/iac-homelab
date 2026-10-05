@@ -28,6 +28,7 @@ GITOPS_PLAYBOOKS=(
   vault.yml
   forgejo.yml
   forgejo-runner.yml
+  forgejo-repos.yml
   mgmt.yml
 )
 

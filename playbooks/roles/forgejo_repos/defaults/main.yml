@@ -1,0 +1,27 @@
+# Forgejo's API on the git VM, only reachable there (nginx proxies the public name).
+forgejo_repos_api: "http://127.0.0.1:{{ forgejo_http_port | default(3000) }}/api/v1"
+
+# An admin's access token (write:repository, write:organization, read:user), created in the UI.
+forgejo_repos_token_file: "{{ bootstrap_secrets_dir }}/forgejo-api-token"
+# A GitHub fine-grained token for the repos below: Contents read/write (the push mirror),
+# Metadata, Issues and Pull requests read (the import).
+forgejo_repos_github_token_file: "{{ bootstrap_secrets_dir }}/github-mirror-token"
+
+forgejo_repos_owner: "{{ admin_user | default('hirednoobs') }}"
+
+# Forgejo is the upstream, every push is mirrored to the GitHub repo (owner/name). Imported from
+# GitHub (history, issues, PRs, releases) when the Forgejo repo doesn't exist yet. Only the IaC
+# repos live here, their CI reaches the LAN. Everything else stays on GitHub.
+forgejo_repos:
+  - name: iac-homelab
+    github: HiredNoobs/iac-homelab
+
+# Pull mirrors for workflows' `uses:` (DEFAULT_ACTIONS_URL = self), pinned by SHA in the workflows.
+# Created without the Actions unit (DEFAULT_MIRROR_REPO_UNITS), so a sync never runs their workflows.
+forgejo_repos_actions_org: actions
+forgejo_repos_action_mirrors:
+  - name: checkout
+    url: https://github.com/actions/checkout.git
+
+# Re-creates the push mirrors with the current GitHub token, after rotating it.
+forgejo_repos_update_mirror_credentials: false

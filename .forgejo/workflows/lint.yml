@@ -1,0 +1,61 @@
+# Static checks on every push, on the general runner (no credentials, nothing reaches the
+# infrastructure). Tools are pinned, bump the version and its checksum together.
+name: Lint
+
+on:
+  push:
+
+env:
+  TERRAFORM_VERSION: "1.15.9"
+  TERRAFORM_SHA256: "76edd0b22d2f27d3d2e097cd793209646f719cf60f02ff3af626b07361137da1"
+  # authorized_key (movein) is the only module from outside ansible-core.
+  ANSIBLE_POSIX_VERSION: "2.2.2"
+  ANSIBLE_POSIX_SHA256: "00a58c5d804c9adc99c3c3dc1b9f2246f4bb5f7337941440e0956f0e31c3b82b"
+
+jobs:
+  lint:
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3-venv shellcheck unzip
+
+          curl -fsSLo /tmp/terraform.zip \
+            "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+          echo "${TERRAFORM_SHA256}  /tmp/terraform.zip" | sha256sum -c -
+          unzip -q /tmp/terraform.zip -d /usr/local/bin terraform
+
+          python3 -m venv /opt/lint
+          /opt/lint/bin/pip install --quiet --require-hashes -r .forgejo/requirements-lint.txt
+          echo /opt/lint/bin >> "$GITHUB_PATH"
+
+          curl -fsSLo /tmp/ansible-posix.tar.gz \
+            "https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/artifacts/ansible-posix-${ANSIBLE_POSIX_VERSION}.tar.gz"
+          echo "${ANSIBLE_POSIX_SHA256}  /tmp/ansible-posix.tar.gz" | sha256sum -c -
+          /opt/lint/bin/ansible-galaxy collection install --offline /tmp/ansible-posix.tar.gz
+
+      - name: Terraform format
+        run: terraform fmt -check -recursive -diff terraform/
+
+      # The committed lock files pin the providers, no backend (and no state) is needed to validate.
+      - name: Terraform validate
+        run: |
+          for root in clusters gitops; do
+            echo "::group::$root"
+            terraform -chdir="terraform/$root" init -backend=false -input=false
+            terraform -chdir="terraform/$root" validate
+            echo "::endgroup::"
+          done
+
+      # The generated inventory only exists where Terraform ran, the playbooks don't need it here.
+      - name: Ansible syntax
+        working-directory: playbooks
+        env:
+          ANSIBLE_INVENTORY: "localhost,"
+        run: ansible-playbook --syntax-check *.yml
+
+      - name: Shell
+        run: shellcheck build.sh teardown.sh
