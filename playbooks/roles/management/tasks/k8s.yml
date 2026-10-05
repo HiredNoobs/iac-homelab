@@ -46,7 +46,8 @@
     or management_kubeconfigs.results | rejectattr('stat.exists') | list | length > 0
     or management_context_setup | default(false) | bool
 
-# context-setup carries on if a context fails, this catches it.
+# context-setup carries on if a context fails, this catches it. Retried as the build runs this
+# straight after the Terraform apply, and Talos only takes the VIP once etcd is healthy.
 - name: Check the clusters are reachable
   become_user: "{{ management_username }}"
   command: >-
@@ -54,4 +55,8 @@
     --kubeconfig /home/{{ management_username }}/.kube/contexts/{{ item }}.yaml
     get --raw /readyz
   loop: "{{ talosconfigs.keys() | list }}"
+  register: management_readyz
+  until: management_readyz.rc == 0
+  retries: 30
+  delay: 10
   changed_when: false
