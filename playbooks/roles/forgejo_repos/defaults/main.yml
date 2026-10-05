@@ -9,11 +9,12 @@ forgejo_repos_github_token_file: "{{ bootstrap_secrets_dir }}/github-mirror-toke
 
 forgejo_repos_owner: "{{ admin_user | default('hirednoobs') }}"
 
-# Forgejo is the upstream, every push is mirrored to the GitHub repo (owner/name). Imported from
-# GitHub (history, issues, PRs, releases) when the Forgejo repo doesn't exist yet. Only the IaC
-# repos live here, their CI reaches the LAN. Everything else stays on GitHub.
+# Forgejo is the upstream, every push is mirrored to the GitHub repo (owner/name).
 forgejo_repos:
   - name: iac-homelab
     github: HiredNoobs/iac-homelab
+  - name: iac-k8s
+    github: HiredNoobs/iac-k8s
+
 # Re-creates the push mirrors with the current GitHub token, after rotating it.
 forgejo_repos_update_mirror_credentials: false
