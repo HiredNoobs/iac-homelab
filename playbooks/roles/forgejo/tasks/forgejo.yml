@@ -107,9 +107,8 @@
 
       [service]
       DISABLE_REGISTRATION       = true
-      ; Off so runners can clone the public action mirrors anonymously, they don't send a token.
-      ; Repos are private by default (DEFAULT_PRIVATE), anonymous visitors only see public ones.
-      REQUIRE_SIGNIN_VIEW        = false
+      ; Runners clone actions without a token, so workflows can't use `uses:` (see lint.yml).
+      REQUIRE_SIGNIN_VIEW        = true
       DEFAULT_KEEP_EMAIL_PRIVATE = true
 
       [service.explore]
@@ -127,7 +126,7 @@
 
       [actions]
       ENABLED = true
-      ; uses: resolves against this instance, actions are mirrored here and pinned by SHA.
+      ; uses: resolves against this instance, never github.com. There are no actions here.
       DEFAULT_ACTIONS_URL = self
 
       [packages]

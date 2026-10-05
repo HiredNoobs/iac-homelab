@@ -1,74 +1,11 @@
-# The IaC repos (Forgejo upstream, push-mirrored to GitHub) and the actions workflows use, through
-# Forgejo's API. Only creates what's missing, changes made in the UI afterwards are kept.
+# The IaC repos (Forgejo upstream, push-mirrored to GitHub), through Forgejo's API. Only creates
+# what's missing, changes made in the UI afterwards are kept.
 - name: Read API tokens
   set_fact:
     forgejo_repos_headers:
       Authorization: "token {{ lookup('file', forgejo_repos_token_file) }}"
     forgejo_repos_github_token: "{{ lookup('file', forgejo_repos_github_token_file) }}"
   no_log: "{{ not (show_secrets | bool) }}"
-
-# -----------------------------------------------------
-# Actions
-# -----------------------------------------------------
-
-- name: Check for the actions org
-  uri:
-    url: "{{ forgejo_repos_api }}/orgs/{{ forgejo_repos_actions_org }}"
-    headers: "{{ forgejo_repos_headers }}"
-    status_code: [200, 404]
-  register: forgejo_repos_org
-  no_log: "{{ not (show_secrets | bool) }}"
-
-- name: Create the actions org
-  uri:
-    url: "{{ forgejo_repos_api }}/orgs"
-    method: POST
-    headers: "{{ forgejo_repos_headers }}"
-    body_format: json
-    body:
-      username: "{{ forgejo_repos_actions_org }}"
-      visibility: private
-    status_code: 201
-  when: forgejo_repos_org.status == 404
-  changed_when: true
-  no_log: "{{ not (show_secrets | bool) }}"
-
-- name: Check for the action mirrors
-  uri:
-    url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_actions_org }}/{{ item.name }}"
-    headers: "{{ forgejo_repos_headers }}"
-    status_code: [200, 404]
-  loop: "{{ forgejo_repos_action_mirrors }}"
-  loop_control:
-    label: "{{ item.name }}"
-  register: forgejo_repos_action_checks
-  no_log: "{{ not (show_secrets | bool) }}"
-
-- name: Mirror the actions
-  uri:
-    url: "{{ forgejo_repos_api }}/repos/migrate"
-    method: POST
-    headers: "{{ forgejo_repos_headers }}"
-    body_format: json
-    body:
-      clone_addr: "{{ item.item.url }}"
-      service: git
-      repo_owner: "{{ forgejo_repos_actions_org }}"
-      repo_name: "{{ item.item.name }}"
-      mirror: true
-      private: true
-    status_code: 201
-    timeout: 600
-  loop: "{{ forgejo_repos_action_checks.results }}"
-  loop_control:
-    label: "{{ item.item.name }}"
-  when: item.status == 404
-  changed_when: true
-  no_log: "{{ not (show_secrets | bool) }}"
-
-# -----------------------------------------------------
-# IaC repos
-# -----------------------------------------------------
 
 - name: Check for the repos
   uri:

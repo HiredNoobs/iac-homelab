@@ -63,7 +63,7 @@ Files in ``secrets/``, on the machine running Ansible.
 | ``vault-keys.json`` | Vault's unseal keys and root token.|
 | ``forgejo-admin-password`` | Creates the first Forgejo admin. |
 | ``forgejo-runner-<host>`` | A runner's registration secret, ``openssl rand -hex 20``, one per runner. |
-| ``forgejo-api-token`` | ``forgejo-repos.yml``. An admin's Forgejo token (``write:repository``, ``write:organization``, ``read:user``), created in the UI. |
+| ``forgejo-api-token`` | ``forgejo-repos.yml``. An admin's Forgejo token (``write:repository``, ``read:user``), created in the UI. |
 | ``github-mirror-token`` | Importing the IaC repos and push-mirroring them to GitHub. A fine-grained token for those repos: Contents read/write, Metadata, Issues and Pull requests read. Note its expiry. |
 
 ### Vault
@@ -83,7 +83,7 @@ Only the IaC repos (this one, later the Flux repo) live on Forgejo, everything e
 
 ``forgejo-repos.yml`` sets them up from ``forgejo_repos`` in ``playbooks/roles/forgejo_repos/defaults/main.yml``: imports the repo from GitHub (history, issues, PRs, releases) if it's missing, adds the push mirror and protects ``master`` from force pushes. Before adding a repo, disable Actions on its GitHub repo and remove any GitHub branch protection (the mirror pushes to it). After rotating ``github-mirror-token``, run ``ansible-playbook forgejo-repos.yml -e forgejo_repos_update_mirror_credentials=true``.
 
-- Workflows go in ``.forgejo/workflows/`` and use ``runs-on: docker``. ``uses:`` doesn't work yet: it resolves against Forgejo (``DEFAULT_ACTIONS_URL = self``), but the runner clones actions anonymously and ``REQUIRE_SIGNIN_VIEW`` refuses it. Check out with ``git`` and the job token instead (see ``lint.yml``).
+- Workflows go in ``.forgejo/workflows/`` and use ``runs-on: docker``. There are no actions: ``uses:`` resolves against Forgejo (``DEFAULT_ACTIONS_URL = self``, so nothing is fetched from GitHub), but the runner clones actions without a token and ``REQUIRE_SIGNIN_VIEW`` refuses it. Check out with ``git`` and the job token, and install tools with a pinned checksum (see ``lint.yml``).
 - Only code pushed to Forgejo runs CI. Disable Actions on the GitHub push mirrors, and never enable Actions on a pull mirror (a sync counts as a push).
 - To re-register a runner, delete ``/var/lib/forgejo-runner/.runner`` on it and run ``forgejo.yml`` and ``forgejo-runner.yml``.
 - Back up the database (``pg_dump``), ``/var/lib/forgejo`` and ``/etc/forgejo/secrets`` together.
