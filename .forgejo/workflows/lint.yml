@@ -16,7 +16,17 @@ jobs:
   lint:
     runs-on: docker
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Not actions/checkout: the runner clones actions anonymously, which REQUIRE_SIGNIN_VIEW refuses.
+      # The job token can read this repo, it's sent as a header so it isn't saved in .git/config.
+      - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          git init -q .
+          git -c http.extraHeader="Authorization: Basic $auth" \
+            fetch -q --depth 1 "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q FETCH_HEAD
 
       - name: Install tools
         run: |

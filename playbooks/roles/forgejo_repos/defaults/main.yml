@@ -18,6 +18,7 @@ forgejo_repos:
 
 # Pull mirrors for workflows' `uses:` (DEFAULT_ACTIONS_URL = self), pinned by SHA in the workflows.
 # Created without the Actions unit (DEFAULT_MIRROR_REPO_UNITS), so a sync never runs their workflows.
+# Public, the runner clones actions without a token.
 forgejo_repos_actions_org: actions
 forgejo_repos_action_mirrors:
   - name: checkout

@@ -107,8 +107,14 @@
 
       [service]
       DISABLE_REGISTRATION       = true
-      REQUIRE_SIGNIN_VIEW        = true
+      ; Off so runners can clone the public action mirrors anonymously, they don't send a token.
+      ; Repos are private by default (DEFAULT_PRIVATE), anonymous visitors only see public ones.
+      REQUIRE_SIGNIN_VIEW        = false
       DEFAULT_KEEP_EMAIL_PRIVATE = true
+
+      [service.explore]
+      DISABLE_USERS_PAGE         = true
+      DISABLE_ORGANIZATIONS_PAGE = true
 
       [repository]
       DEFAULT_PRIVATE = private

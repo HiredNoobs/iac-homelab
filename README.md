@@ -83,7 +83,7 @@ Only the IaC repos (this one, later the Flux repo) live on Forgejo, everything e
 
 ``forgejo-repos.yml`` sets them up from ``forgejo_repos`` in ``playbooks/roles/forgejo_repos/defaults/main.yml``: imports the repo from GitHub (history, issues, PRs, releases) if it's missing, adds the push mirror and protects ``master`` from force pushes. Before adding a repo, disable Actions on its GitHub repo and remove any GitHub branch protection (the mirror pushes to it). After rotating ``github-mirror-token``, run ``ansible-playbook forgejo-repos.yml -e forgejo_repos_update_mirror_credentials=true``.
 
-- Workflows go in ``.forgejo/workflows/`` and use ``runs-on: docker``. ``uses:`` resolves against Forgejo (``DEFAULT_ACTIONS_URL = self``), add the action to ``forgejo_repos_action_mirrors`` and pin it by SHA.
+- Workflows go in ``.forgejo/workflows/`` and use ``runs-on: docker``. ``uses:`` doesn't work yet: it resolves against Forgejo (``DEFAULT_ACTIONS_URL = self``), but the runner clones actions anonymously and ``REQUIRE_SIGNIN_VIEW`` refuses it. Check out with ``git`` and the job token instead (see ``lint.yml``).
 - Only code pushed to Forgejo runs CI. Disable Actions on the GitHub push mirrors, and never enable Actions on a pull mirror (a sync counts as a push).
 - To re-register a runner, delete ``/var/lib/forgejo-runner/.runner`` on it and run ``forgejo.yml`` and ``forgejo-runner.yml``.
 - Back up the database (``pg_dump``), ``/var/lib/forgejo`` and ``/etc/forgejo/secrets`` together.

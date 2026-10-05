@@ -1,11 +1,13 @@
 # Each runner is registered with its own pre-shared secret, the forgejo_runner role creates the
 # matching .runner file from the same secret. The runner's ID comes from the secret, so every
-# runner needs a different one. 'register' is idempotent, the runner sends its own labels.
+# runner needs a different one. 'register' is idempotent. The runner declares its own labels when
+# it starts, --keep-labels stops a re-run from wiping them (jobs then wait for a runner forever).
+# --secret-stdin takes a value (ignored), without one it swallows the next flag.
 - name: Register runners
   become_user: "{{ forgejo_user }}"
   command: >-
     {{ forgejo_install_dir }}/forgejo --config {{ forgejo_config_dir }}/app.ini --work-path {{ forgejo_work_dir }}
-    forgejo-cli actions register --secret-stdin --name {{ item }}
+    forgejo-cli actions register --secret-stdin=- --name {{ item }} --keep-labels
   args:
     stdin: "{{ lookup('file', bootstrap_secrets_dir ~ '/forgejo-runner-' ~ item) }}"
     # The secret must be exactly 40 characters, without the newline Ansible adds by default.
