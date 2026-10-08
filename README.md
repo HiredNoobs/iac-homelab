@@ -38,7 +38,7 @@ export TF_VAR_pm_password="<password for that root's Proxmox>"
 Defined in ``terraform/clusters/clusters.auto.tfvars``, keyed by the tools-bin context name (e.g. ``production.core``). The node name sets the Proxmox node, role and labels: ``prx-002-srv-prod-core-worker-001`` is a worker on ``prx-002`` with ``topology.kubernetes.io/zone: prx-002`` and ``hirednoobs.com/pool: worker-001``.
 
 - VMIDs per Proxmox node (``prx-001`` = 100-199): X00-X09 control planes, X10-X89 workers.
-- IPs: ``.10`` API VIP, ``.11``-``.99`` nodes, ``.100``-``.149`` LoadBalancer IPs (kube-vip).
+- IPs: ``.10`` API VIP, ``.11``-``.99`` nodes (``.X1``-``.X9`` on ``prx-00X``, control plane first), ``.100``-``.149`` LoadBalancer IPs (kube-vip).
 - ``longhorn_disk`` adds a disk at ``/var/mnt/longhorn`` and the ``node.longhorn.io/create-default-disk=true`` label.
 - The talosconfigs are written to ``~/.talos/contexts/<context>.yaml``, they're the way in if the management VMs are down.
 
