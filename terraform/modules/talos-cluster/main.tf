@@ -187,6 +187,16 @@ data "talos_machine_configuration" "node" {
           taints = { "node-role.kubernetes.io/control-plane" = { "$patch" = "delete" } }
         } : {}
       )),
+      # The kubelet's serving certificate from the cluster CA (a CSR approved by iac-k8s'
+      # kubelet-serving-cert-approver) instead of self-signed, so metrics-server can verify it.
+      # Until the CSR is approved the kubelet has no serving certificate (no logs/exec).
+      yamlencode({
+        apiVersion = "v1alpha1"
+        kind       = "KubeletConfig"
+        config = {
+          serverTLSBootstrap = true
+        }
+      }),
       # Also set via cloud-init for first boot, this lets nameserver changes apply without a reboot.
       yamlencode({
         apiVersion  = "v1alpha1"
