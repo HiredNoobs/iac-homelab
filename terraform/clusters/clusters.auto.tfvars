@@ -1,4 +1,4 @@
-# Clusters keyed by the context name used by tools-bin (`deployment`/`context-setup`).
+# Clusters keyed by the context name used by tools-bin (`context-setup`).
 #
 # Node names are prx-<host>-...-<control|worker>-<number>. The Proxmox node, role
 # and labels are taken from the name:
@@ -14,7 +14,7 @@
 # IPs in 192.168.111.0/24:
 #   .10          Kubernetes API VIP
 #   .11  - .99   Nodes
-#   .100 - .149  LoadBalancer IPs, announced by kube-vip (stack-kube-vip)
+#   .100 - .149  LoadBalancer IPs, announced by kube-vip (iac-k8s)
 #   .200 - .254  prx-999 VMs (terraform/gitops), the management VMs count down from .254
 #
 # Extra labels can be added per node with `labels`.
@@ -48,11 +48,6 @@ clusters = {
         disk   = 20
 
         longhorn_disk = 50
-
-        labels = {
-          pihole_core_pihole = ""
-          nginx_core_nginx   = ""
-        }
       }
 
       prx-001-srv-prod-core-worker-002 = {
@@ -64,14 +59,6 @@ clusters = {
         disk   = 20
 
         longhorn_disk = 50
-
-        labels = {
-          redis_core_redis        = ""
-          rabbitmq_core_broker    = ""
-          contentbot_core_chatbot = ""
-          contentbot_core_worker  = ""
-          homepage_core_homepage  = ""
-        }
       }
 
       prx-001-srv-prod-core-worker-003 = {
@@ -83,13 +70,6 @@ clusters = {
         disk   = 20
 
         longhorn_disk = 50
-
-        labels = {
-          vault_core_vault             = ""
-          vaultwarden_core_vaultwarden = ""
-          lldap_core_lldap             = ""
-          authelia_core_authelia       = ""
-        }
       }
 
       prx-001-srv-prod-core-worker-004 = {
@@ -101,16 +81,6 @@ clusters = {
         disk   = 20
 
         longhorn_disk = 50
-
-        labels = {
-          grafana_core_grafana         = ""
-          grafana_core_victorialogs    = ""
-          grafana_core_victoriametrics = ""
-          grafana_core_vmagent         = ""
-          grafana_core_vmalert         = ""
-          grafana_core_alertmanager    = ""
-          rsyslog_core_rsyslog         = ""
-        }
       }
     }
   }
