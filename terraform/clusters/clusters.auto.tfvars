@@ -55,8 +55,8 @@ clusters = {
         ip   = "192.168.111.13/24"
 
         cores  = 4
-        memory = 6144
-        disk   = 20
+        memory = 12288
+        disk   = 40
 
         longhorn_disk = 50
       }
