@@ -61,28 +61,6 @@ clusters = {
         longhorn_disk = 50
       }
 
-      prx-001-srv-prod-core-worker-003 = {
-        vmid = 112
-        ip   = "192.168.111.14/24"
-
-        cores  = 4
-        memory = 6144
-        disk   = 20
-
-        longhorn_disk = 50
-      }
-
-      prx-001-srv-prod-core-worker-004 = {
-        vmid = 113
-        ip   = "192.168.111.15/24"
-
-        cores  = 4
-        memory = 6144
-        disk   = 20
-
-        longhorn_disk = 50
-      }
-
       prx-002-srv-prod-core-control-001 = {
         vmid = 200
         ip   = "192.168.111.21/24"
