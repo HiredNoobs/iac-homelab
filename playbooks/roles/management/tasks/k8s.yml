@@ -35,7 +35,7 @@
 # Also renews the admin kubeconfig certs, force a re-run with -e management_context_setup=true.
 - name: Run context-setup
   become_user: "{{ management_username }}"
-  command: "/home/{{ management_username }}/tools-bin/bin/context-setup {{ management_orchestrator }}"
+  command: "/home/{{ management_username }}/tools-bin/bin/context-setup"
   # What the user's bashrc would set, context-setup installs talosctl/kubectl into tools-bin/bin.
   environment:
     DOMAIN: "{{ domain }}"

@@ -16,4 +16,3 @@
 
 - name: Setup k8s contexts
   import_tasks: k8s.yml
-  when: management_orchestrator == "k8s"
