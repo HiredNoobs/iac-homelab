@@ -1,5 +1,6 @@
 # Bump both together. The checksum is the release's forgejo-runner-<version>-linux-amd64.sha256,
 # check the binary's .asc against the Forgejo release key (EB114F5E6C0DC2BCDD183550A4B61A2DC5923710).
+# renovate: datasource=forgejo-releases depName=forgejo/runner registryUrl=https://code.forgejo.org extractVersion=^v(?<version>.+)$
 forgejo_runner_version: "13.2.0"
 forgejo_runner_sha256: "fadaec897f5e6641c363f87ecaf75f866f99c81b7097ec6b433e4c48123fcad1"
 

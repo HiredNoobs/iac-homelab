@@ -65,7 +65,9 @@ variable "vm_datastore" {
 # Talos
 # -----------------------------------------------------
 
-# Installed Talos version, bumping this upgrades the nodes in place.
+# Installed Talos version, bumping this upgrades the nodes in place. One minor version at a time,
+# keep talosctl (tools-bin's context-setup) in line.
+# renovate: datasource=github-releases depName=siderolabs/talos
 variable "talos_version" {
   type    = string
   default = "v1.14.1"
@@ -78,7 +80,10 @@ variable "talos_contract" {
   default = "v1.14"
 }
 
-# Bumping this runs Talos's upgrade-k8s procedure via talos_cluster.
+# Bumping this runs Talos's upgrade-k8s procedure via talos_cluster. One minor version at a time,
+# within what talos_version supports. Keep kubectl (tools-bin's context-setup) and
+# KUBERNETES_VERSION in iac-k8s's lint.yml in line.
+# renovate: datasource=github-releases depName=kubernetes/kubernetes
 variable "kubernetes_version" {
   type    = string
   default = "v1.37.0"

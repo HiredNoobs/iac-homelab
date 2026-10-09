@@ -1,0 +1,79 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Run by the renovate repo's workflow (the global config, and default.json for the shared settings). Every update is a PR, nothing automerges: applies are deliberate.",
+  "extends": ["local>hirednoobs/renovate"],
+  "pip-compile": {
+    "managerFilePatterns": ["/^\\.forgejo/requirements-lint\\.txt$/"]
+  },
+  "pip_requirements": {
+    "enabled": false
+  },
+  "postUpgradeTasks": {
+    "commands": ["bash .forgejo/scripts/update-pins.sh"],
+    "fileFilters": ["**/*"],
+    "executionMode": "branch"
+  },
+  "customManagers": [
+    {
+      "description": "Versions with a `# renovate: datasource=... depName=...` comment on the line above (lint.yml, the roles' defaults)",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.forgejo/workflows/.+\\.ya?ml$/", "/^playbooks/roles/[^/]+/defaults/main\\.yml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: registryUrl=(?<registryUrl>\\S+))?(?: extractVersion=(?<extractVersion>\\S+))?\\n\\s*\\w+: \"?(?<currentValue>[^\"\\s]+)\"?"
+      ]
+    },
+    {
+      "description": "Terraform variables with a `# renovate:` comment above the block (talos_version, kubernetes_version)",
+      "customType": "regex",
+      "managerFilePatterns": ["/^terraform/.+\\.tf$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nvariable \"\\w+\" \\{\\n\\s*type\\s*=\\s*string\\n\\s*default\\s*=\\s*\"(?<currentValue>[^\"]+)\""
+      ]
+    },
+    {
+      "description": "The runner's job image (forgejo_runner_labels)",
+      "customType": "regex",
+      "managerFilePatterns": ["/^playbooks/roles/forgejo_runner/defaults/main\\.yml$/"],
+      "matchStrings": ["docker://(?<depName>[^:\"]+):(?<currentValue>[^@\"]+)@(?<currentDigest>sha256:[a-f0-9]{64})"],
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "The Terraform CLI: required_version in every root and lint.yml",
+      "matchPackageNames": ["hashicorp/terraform"],
+      "groupName": "terraform",
+      "prBodyNotes": ["Apply with the new version from the workstation and mgmt (and CI's, once it applies)."]
+    },
+    {
+      "description": "Talos and Kubernetes: one minor version at a time, applied by hand",
+      "matchPackageNames": ["siderolabs/talos", "kubernetes/kubernetes"],
+      "separateMultipleMinor": true,
+      "prBodyNotes": ["Upgrades the cluster when applied (`./build.sh clusters`). Bump talosctl/kubectl in tools-bin's `context-setup` too, and for Kubernetes `KUBERNETES_VERSION` (and the schemas commit) in iac-k8s's lint.yml. Check the Talos support matrix first."]
+    },
+    {
+      "matchPackageNames": ["forgejo/forgejo"],
+      "prBodyNotes": ["15.0 is the LTS line (until July 2027): a new major leaves it. Check the binary's .asc against the Forgejo release key, then `forgejo.yml`."]
+    },
+    {
+      "description": "Leaving the LTS line is a decision: a new major only gets a PR once ticked in the Dependency Dashboard",
+      "matchPackageNames": ["forgejo/forgejo"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "matchPackageNames": ["forgejo/runner", "docker.io/library/node"],
+      "groupName": "forgejo-runner",
+      "prBodyNotes": ["Applied with `forgejo-runner.yml`."]
+    },
+    {
+      "matchPackageNames": ["hashicorp/vault"],
+      "prBodyNotes": ["Check the zip's SHA256SUMS signature against HashiCorp's key, take a Raft snapshot, then `vault.yml`."]
+    },
+    {
+      "description": "Lint tooling only",
+      "matchManagers": ["pip-compile"],
+      "groupName": "lint tools"
+    }
+  ]
+}
