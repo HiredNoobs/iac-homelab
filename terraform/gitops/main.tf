@@ -60,6 +60,7 @@ resource "local_file" "ansible_inventory" {
         domain      = var.domain
         nameservers = var.nameservers
         admin_user  = var.admin_user
+        admin_email = var.admin_email
       }
       children = {
         # Everything this root creates, build.sh limits the playbooks to it.

@@ -17,7 +17,7 @@ forgejo_http_port: 3000
 
 # The first admin, created once. Its password is a bootstrap secret, change it in the UI after.
 forgejo_admin_username: "{{ admin_user | default('hirednoobs') }}"
-forgejo_admin_email: "{{ forgejo_admin_username }}@{{ domain }}"
+forgejo_admin_email: "{{ admin_email | default('78608593+HiredNoobs@users.noreply.github.com') }}"
 forgejo_admin_password_file: "{{ bootstrap_secrets_dir }}/forgejo-admin-password"
 
 # Webhook targets Forgejo may call: the internet and the lab VLAN (e.g. Flux's receiver).

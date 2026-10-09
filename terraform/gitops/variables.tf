@@ -81,6 +81,13 @@ variable "admin_user" {
   default = "hirednoobs"
 }
 
+# admin_user's email, e.g. Forgejo's admin (its UI merges and edits are authored with it). The
+# same address as the owner's git commits, so the GitHub mirrors attribute them.
+variable "admin_email" {
+  type    = string
+  default = "78608593+HiredNoobs@users.noreply.github.com"
+}
+
 # Authorized for admin_user, this is the key Ansible uses.
 variable "ssh_public_key_file" {
   type    = string
