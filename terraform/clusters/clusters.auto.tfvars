@@ -47,7 +47,7 @@ clusters = {
         memory = 12288
         disk   = 40
 
-        longhorn_disk = 50
+        longhorn_disk = 100
       }
 
       prx-001-srv-prod-core-worker-002 = {
