@@ -58,7 +58,7 @@ clusters = {
         memory = 12288
         disk   = 40
 
-        longhorn_disk = 50
+        longhorn_disk = 100
       }
 
       prx-002-srv-prod-core-control-001 = {
@@ -78,7 +78,7 @@ clusters = {
         memory = 12288
         disk   = 40
 
-        longhorn_disk = 50
+        longhorn_disk = 100
       }
 
       prx-002-srv-prod-core-worker-002 = {
@@ -89,7 +89,7 @@ clusters = {
         memory = 12288
         disk   = 40
 
-        longhorn_disk = 50
+        longhorn_disk = 100
       }
 
       prx-003-srv-prod-core-control-001 = {
@@ -109,7 +109,7 @@ clusters = {
         memory = 12288
         disk   = 40
 
-        longhorn_disk = 50
+        longhorn_disk = 100
       }
 
       prx-003-srv-prod-core-worker-002 = {
@@ -120,7 +120,7 @@ clusters = {
         memory = 12288
         disk   = 40
 
-        longhorn_disk = 50
+        longhorn_disk = 100
       }
     }
   }
