@@ -1,0 +1,36 @@
+# Debian's Postgres, upgraded by patch.yml. Forgejo connects over the local socket as the git OS
+# user (peer auth, Debian's default for local connections), so there's no database password.
+- name: Install Postgres
+  apt:
+    name: postgresql
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Enable Postgres
+  systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Check for the forgejo database role
+  become_user: postgres
+  command: psql -tAc "SELECT 1 FROM pg_roles WHERE rolname = '{{ forgejo_user }}'"
+  register: forgejo_db_role
+  changed_when: false
+
+- name: Create the forgejo database role
+  become_user: postgres
+  command: "createuser {{ forgejo_user }}"
+  when: forgejo_db_role.stdout != "1"
+
+- name: Check for the forgejo database
+  become_user: postgres
+  command: psql -tAc "SELECT 1 FROM pg_database WHERE datname = 'forgejo'"
+  register: forgejo_db
+  changed_when: false
+
+- name: Create the forgejo database
+  become_user: postgres
+  command: "createdb --owner {{ forgejo_user }} --encoding UTF8 --locale C.UTF-8 --template template0 forgejo"
+  when: forgejo_db.stdout != "1"

@@ -1,14 +1,8 @@
-- name: Update apt cache
-  apt:
-    update_cache: yes
-    cache_valid_time: 3600
-
 - name: Upgrade all packages
   apt:
     upgrade: dist
-
-- name: Autoremove unused packages
-  apt:
+    update_cache: yes
+    cache_valid_time: 3600
     autoremove: yes
 
 - name: Check if reboot is required

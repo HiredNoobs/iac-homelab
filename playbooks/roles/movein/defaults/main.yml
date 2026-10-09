@@ -1,1 +1,15 @@
-movein_username: hirednoobs
+movein_username: "{{ admin_user | default('hirednoobs') }}"
+
+# tools-bin (and its bash, vim and tmux config) is only for the management VMs, the jumpboxes.
+# The servers (vault, git, runner) don't need it, it's removed from them if it was installed.
+movein_tools_bin: "{{ 'mgmt' in group_names }}"
+
+# Branch of tools-bin to check out after movein.sh has cloned it, movein.sh is fetched from the
+# same branch. A branch rather than a commit, so the VMs follow tools-bin and it isn't left on a
+# detached HEAD.
+tools_bin_repo: https://github.com/HiredNoobs/tools-bin.git
+# TODO: Switch back to master once tools-bin's k8s-deployment branch is merged.
+tools_bin_version: k8s-deployment
+
+# tools-bin `setup` commands run as movein_username.
+tools_bin_setup: [bash, vim, tmux]

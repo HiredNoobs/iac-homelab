@@ -1,0 +1,18 @@
+- name: Install management packages
+  apt:
+    name: "{{ management_packages }}"
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+# Neither Debian's tmux nor bash-completion ship a tmux completion. Pinned as the repo is archived,
+# bash-completion lazy-loads it from here the first time tmux is tab-completed.
+- name: Install tmux bash completion
+  get_url:
+    url: https://raw.githubusercontent.com/imomaliev/tmux-bash-completion/cd965a8d5e6adaf829b8d10e74fb20db001dec86/completions/tmux
+    dest: /usr/share/bash-completion/completions/tmux
+    checksum: sha256:4e2179053376f4194b342249d75c243c1573c82c185bfbea008be1739048e709
+    mode: '0644'
+
+- name: Setup k8s contexts
+  import_tasks: k8s.yml

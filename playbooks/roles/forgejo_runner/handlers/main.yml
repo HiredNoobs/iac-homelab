@@ -1,0 +1,4 @@
+- name: restart forgejo-runner
+  systemd:
+    name: forgejo-runner
+    state: restarted

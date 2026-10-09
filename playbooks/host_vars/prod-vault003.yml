@@ -1,2 +1,0 @@
-keepalived_role: "BACKUP"
-keepalived_priority: 150

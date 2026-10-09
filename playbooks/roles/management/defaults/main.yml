@@ -1,0 +1,16 @@
+management_username: "{{ admin_user | default('hirednoobs') }}"
+
+# Needed by the tools-bin scripts (vsecret, secret-*, make-*).
+management_packages:
+  - bash-completion
+  - default-jdk-headless # keytool for make-keystore/make-truststore
+  - git
+  - jq
+  - openssl
+  - python3
+  - rsync
+  - tmux
+  - tree
+  - unzip
+  - yq
+  - zip

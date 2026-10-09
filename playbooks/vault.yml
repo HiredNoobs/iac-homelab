@@ -1,0 +1,31 @@
+---
+- hosts: vault
+  become: yes
+  gather_facts: false
+  vars:
+    certbot_domains: ["{{ vault_domain }}"]
+  roles:
+    - common
+    - certbot
+    - vault
+  post_tasks:
+    # 0 unsealed, 2 sealed (also when uninitialised).
+    - name: Check vault status
+      command: vault status -format=json
+      environment:
+        VAULT_ADDR: "{{ vault_cli_addr }}"
+        VAULT_TLS_SERVER_NAME: "{{ vault_domain }}"
+      register: vault_status
+      changed_when: false
+      failed_when: vault_status.rc not in [0, 2]
+      retries: 5
+      delay: 3
+      until: vault_status.rc in [0, 2]
+
+    - name: Vault needs unsealing
+      debug:
+        msg: >-
+          {{ inventory_hostname }} is
+          {{ 'sealed, run vault-unseal.yml' if (vault_status.stdout | from_json).initialized
+             else 'not initialised, see the README' }}.
+      when: (vault_status.stdout | from_json).sealed

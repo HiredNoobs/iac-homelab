@@ -1,0 +1,8 @@
+---
+# After forgejo.yml. Needs the forgejo-api-token and github-mirror-token bootstrap secrets.
+- hosts: git
+  become: yes
+  gather_facts: false
+  roles:
+    - common
+    - forgejo_repos

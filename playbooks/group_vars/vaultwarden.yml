@@ -1,3 +1,0 @@
-swarm_cluster: "production.core"
-swarm_role: "worker"
-swarm_labels: "vaultwarden_core_vaultwarden"

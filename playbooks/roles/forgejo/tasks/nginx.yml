@@ -1,0 +1,81 @@
+# TLS in front of Forgejo with the certificate the certbot role requested. nginx reads it straight
+# from /etc/letsencrypt (its master process runs as root), the deploy hook reloads it.
+- name: Install nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Remove the default site
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: reload nginx
+
+- name: Deploy forgejo site
+  copy:
+    dest: /etc/nginx/sites-available/forgejo
+    mode: '0644'
+    content: |
+      # Managed by Ansible (forgejo).
+      server {
+          listen 80;
+          listen [::]:80;
+          server_name {{ forgejo_domain }};
+          return 301 https://$host$request_uri;
+      }
+
+      server {
+          listen 443 ssl;
+          listen [::]:443 ssl;
+          http2 on;
+          server_name {{ forgejo_domain }};
+
+          ssl_certificate     /etc/letsencrypt/live/{{ forgejo_domain }}/fullchain.pem;
+          ssl_certificate_key /etc/letsencrypt/live/{{ forgejo_domain }}/privkey.pem;
+
+          client_max_body_size {{ forgejo_max_body_size }};
+
+          location / {
+              proxy_pass http://127.0.0.1:{{ forgejo_http_port }};
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              # Stream pushes and package uploads instead of buffering them to disk.
+              proxy_request_buffering off;
+          }
+      }
+  notify: reload nginx
+
+- name: Enable forgejo site
+  file:
+    src: /etc/nginx/sites-available/forgejo
+    dest: /etc/nginx/sites-enabled/forgejo
+    state: link
+  notify: reload nginx
+
+- name: Check nginx config
+  command: nginx -t
+  changed_when: false
+
+- name: Deploy certbot renewal hook
+  copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/nginx
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (forgejo). Reloads nginx for the renewed certificate.
+      [ "$RENEWED_LINEAGE" = "/etc/letsencrypt/live/{{ forgejo_domain }}" ] || exit 0
+      systemctl reload nginx
+
+- name: Enable nginx
+  systemd:
+    name: nginx
+    enabled: yes
+    state: started
+
+# Apply the nginx (and forgejo) changes now, so a later failure doesn't leave the old config running.
+- name: Apply nginx changes
+  meta: flush_handlers

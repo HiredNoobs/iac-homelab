@@ -1,0 +1,25 @@
+# Bump both together. The checksum is the release's forgejo-runner-<version>-linux-amd64.sha256,
+# check the binary's .asc against the Forgejo release key (EB114F5E6C0DC2BCDD183550A4B61A2DC5923710).
+# renovate: datasource=forgejo-releases depName=forgejo/runner registryUrl=https://code.forgejo.org extractVersion=^v(?<version>.+)$
+forgejo_runner_version: "13.2.0"
+forgejo_runner_sha256: "fadaec897f5e6641c363f87ecaf75f866f99c81b7097ec6b433e4c48123fcad1"
+
+forgejo_runner_user: runner
+forgejo_runner_install_dir: /usr/local/bin
+forgejo_runner_config_dir: /etc/forgejo-runner
+forgejo_runner_work_dir: /var/lib/forgejo-runner
+
+forgejo_runner_instance: "https://git.{{ domain }}"
+
+# Must match a forgejo-runner-<host> secret registered by the forgejo role.
+forgejo_runner_secret_file: "{{ bootstrap_secrets_dir }}/forgejo-runner-{{ inventory_hostname }}"
+
+# Jobs run at once.
+forgejo_runner_capacity: 2
+
+# runs-on: <label>. Images pinned by digest, Renovate bumps them.
+forgejo_runner_labels:
+  - "docker:docker://docker.io/library/node:24-trixie@sha256:be40f6a87b9b22215ddb20da0a2320a5c6d583fe3ee3b0024d9fa4f05b40c8fd"
+
+# Images and build cache older than this are pruned weekly.
+forgejo_runner_prune_until: 168h

@@ -1,0 +1,20 @@
+# Bump both together, the checksum is the linux_amd64 zip's from the release's
+# vault_<version>_SHA256SUMS (check its .sig against HashiCorp's key). Keep the version the
+# data was last used with when restoring a snapshot, upgrade afterwards.
+# renovate: datasource=github-releases depName=hashicorp/vault extractVersion=^v(?<version>.+)$
+vault_version: "1.21.3"
+vault_sha256: "c945e90979a7b6e4b4846285587c35b25f8191f9f70cb879132bc118ae42c368"
+
+# The name clients use, also the certbot certificate's name. Vault listens on 443 so
+# VAULT_ADDR=https://vault.<domain> (tools-bin) works without a port.
+vault_domain: "vault.{{ domain }}"
+vault_port: 443
+vault_cluster_port: 8201
+
+vault_user: vault
+vault_install_dir: /usr/local/bin
+vault_config_dir: /etc/vault.d
+vault_data_dir: /var/lib/vault/data
+
+# For the vault CLI on the VM, before and after DNS points at it.
+vault_cli_addr: "https://127.0.0.1:{{ vault_port }}"

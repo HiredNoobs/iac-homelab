@@ -1,0 +1,46 @@
+# Proxmox passes the nameservers to cloud-init as a global setting, which isn't applied by
+# the systemd-networkd config the Debian cloud image renders. Left alone, systemd-resolved's
+# 127.0.0.53 stub picks its own upstreams (compiled-in fallbacks, servers learnt on the link),
+# which answer public records for our domain instead of the router's local ones.
+# So point everything at the nameservers directly and keep resolved out of the lookup path.
+# Runs first, everything after this needs DNS.
+- name: Ensure resolved.conf.d exists
+  file:
+    path: /etc/systemd/resolved.conf.d
+    state: directory
+    mode: '0755'
+
+# Keeps resolvectl consistent with resolv.conf, and stops resolved listening on 127.0.0.53.
+- name: Configure systemd-resolved
+  copy:
+    dest: /etc/systemd/resolved.conf.d/10-nameservers.conf
+    mode: '0644'
+    content: |
+      [Resolve]
+      DNS={{ nameservers | join(' ') }}
+      FallbackDNS=
+      Domains={{ domain }}
+      DNSStubListener=no
+  notify: restart systemd-resolved
+
+# nss-resolve would send lookups through resolved regardless of resolv.conf.
+- name: Remove nss-resolve
+  apt:
+    name: libnss-resolve
+    state: absent
+
+# A regular file rather than resolved's symlink, resolved doesn't touch it then.
+- name: Configure resolv.conf
+  copy:
+    dest: /etc/resolv.conf
+    mode: '0644'
+    follow: no
+    content: |
+      # Managed by Ansible (movein), queries go straight to the router.
+      {% for nameserver in nameservers %}
+      nameserver {{ nameserver }}
+      {% endfor %}
+      search {{ domain }}
+
+- name: Apply DNS changes
+  meta: flush_handlers

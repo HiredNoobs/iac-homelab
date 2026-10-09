@@ -1,0 +1,212 @@
+- name: Install git
+  apt:
+    name: git
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+# A login shell, Forgejo's authorized_keys runs its serv command for git over SSH.
+- name: Ensure git user exists
+  user:
+    name: "{{ forgejo_user }}"
+    shell: /bin/bash
+    system: yes
+    home: "{{ forgejo_work_dir }}"
+    create_home: yes
+
+- name: Ensure work directory permissions
+  file:
+    path: "{{ forgejo_work_dir }}"
+    state: directory
+    owner: "{{ forgejo_user }}"
+    group: "{{ forgejo_user }}"
+    mode: '0750'
+
+- name: Ensure config directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: "{{ forgejo_user }}"
+    mode: '0750'
+  loop:
+    - "{{ forgejo_config_dir }}"
+    - "{{ forgejo_config_dir }}/secrets"
+
+# get_url only downloads when the file's checksum doesn't match, so this is the version check.
+- name: Install forgejo binary
+  get_url:
+    url: "https://codeberg.org/forgejo/forgejo/releases/download/v{{ forgejo_version }}/forgejo-{{ forgejo_version }}-linux-amd64"
+    checksum: "sha256:{{ forgejo_sha256 }}"
+    dest: "{{ forgejo_install_dir }}/forgejo"
+    owner: root
+    group: root
+    mode: '0755'
+  notify: restart forgejo
+
+# Generated once and kept on the VM, app.ini points at them (*_URI) so Forgejo never rewrites
+# app.ini. SECRET_KEY encrypts e.g. 2FA secrets, back these up with the database.
+- name: Generate Forgejo secrets
+  shell: |
+    set -o pipefail
+    umask 027
+    {{ forgejo_install_dir }}/forgejo generate secret {{ item }} > {{ forgejo_config_dir }}/secrets/{{ item }}
+    chgrp {{ forgejo_user }} {{ forgejo_config_dir }}/secrets/{{ item }}
+  args:
+    executable: /bin/bash
+    creates: "{{ forgejo_config_dir }}/secrets/{{ item }}"
+  loop:
+    - INTERNAL_TOKEN
+    - SECRET_KEY
+    - JWT_SECRET
+    - LFS_JWT_SECRET
+
+- name: Deploy forgejo config
+  copy:
+    dest: "{{ forgejo_config_dir }}/app.ini"
+    owner: root
+    group: "{{ forgejo_user }}"
+    mode: '0640'
+    content: |
+      ; Managed by Ansible (forgejo). Forgejo can't write to it, the generated secrets are in
+      ; {{ forgejo_config_dir }}/secrets.
+      APP_NAME  = Forgejo
+      RUN_USER  = {{ forgejo_user }}
+      RUN_MODE  = prod
+      WORK_PATH = {{ forgejo_work_dir }}
+
+      [server]
+      DOMAIN             = {{ forgejo_domain }}
+      ROOT_URL           = https://{{ forgejo_domain }}/
+      PROTOCOL           = http
+      HTTP_ADDR          = 127.0.0.1
+      HTTP_PORT          = {{ forgejo_http_port }}
+      SSH_DOMAIN         = {{ forgejo_domain }}
+      SSH_PORT           = 22
+      START_SSH_SERVER   = false
+      LFS_START_SERVER   = true
+      LFS_JWT_SECRET_URI = file://{{ forgejo_config_dir }}/secrets/LFS_JWT_SECRET
+      ; No external CDNs or avatar services.
+      OFFLINE_MODE       = true
+
+      [database]
+      DB_TYPE  = postgres
+      HOST     = /run/postgresql
+      NAME     = forgejo
+      USER     = {{ forgejo_user }}
+      PASSWD   =
+      SSL_MODE = disable
+
+      [security]
+      INSTALL_LOCK       = true
+      INTERNAL_TOKEN_URI = file://{{ forgejo_config_dir }}/secrets/INTERNAL_TOKEN
+      SECRET_KEY_URI     = file://{{ forgejo_config_dir }}/secrets/SECRET_KEY
+
+      [oauth2]
+      JWT_SECRET_URI = file://{{ forgejo_config_dir }}/secrets/JWT_SECRET
+
+      [service]
+      DISABLE_REGISTRATION       = true
+      ; Runners clone actions without a token, so workflows can't use `uses:` (see lint.yml).
+      REQUIRE_SIGNIN_VIEW        = true
+      DEFAULT_KEEP_EMAIL_PRIVATE = true
+
+      [service.explore]
+      DISABLE_USERS_PAGE         = true
+      DISABLE_ORGANIZATIONS_PAGE = true
+
+      [repository]
+      DEFAULT_PRIVATE = private
+      ; Pull mirrors are created without Actions, a mirror sync is a push event and would run the
+      ; mirrored repo's workflows (.github/workflows too). Forgejo's default, pinned here.
+      DEFAULT_MIRROR_REPO_UNITS = repo.code,repo.issues,repo.releases,repo.wiki,repo.projects,repo.packages
+
+      [session]
+      PROVIDER = db
+
+      [actions]
+      ENABLED = true
+      ; uses: resolves against this instance, never github.com. There are no actions here.
+      DEFAULT_ACTIONS_URL = self
+
+      [packages]
+      ENABLED = true
+
+      [webhook]
+      ALLOWED_HOST_LIST = {{ forgejo_webhook_allowed_hosts }}
+
+      [mailer]
+      ENABLED = false
+
+      [cron.update_checker]
+      ENABLED = false
+
+      [log]
+      MODE  = console
+      LEVEL = Info
+  notify: restart forgejo
+
+- name: Create systemd service for forgejo
+  copy:
+    dest: /etc/systemd/system/forgejo.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Forgejo
+      Wants=network-online.target
+      After=network-online.target postgresql.service
+      Requires=postgresql.service
+
+      [Service]
+      User={{ forgejo_user }}
+      Group={{ forgejo_user }}
+      WorkingDirectory={{ forgejo_work_dir }}
+      ExecStart={{ forgejo_install_dir }}/forgejo web --config {{ forgejo_config_dir }}/app.ini --work-path {{ forgejo_work_dir }}
+      Environment=USER={{ forgejo_user }} HOME={{ forgejo_work_dir }}
+      Restart=on-failure
+      RestartSec=5
+      NoNewPrivileges=yes
+      ProtectSystem=full
+      PrivateTmp=yes
+      PrivateDevices=yes
+
+      [Install]
+      WantedBy=multi-user.target
+  notify:
+    - reload systemd
+    - restart forgejo
+
+- name: Enable forgejo
+  systemd:
+    name: forgejo
+    enabled: yes
+    state: started
+
+# The admin commands need the schema, which Forgejo creates on its first start.
+- name: Wait for forgejo
+  uri:
+    url: "http://127.0.0.1:{{ forgejo_http_port }}/api/healthz"
+  register: forgejo_health
+  until: forgejo_health.status == 200
+  retries: 30
+  delay: 5
+
+- name: List forgejo admins
+  become_user: "{{ forgejo_user }}"
+  command: >-
+    {{ forgejo_install_dir }}/forgejo --config {{ forgejo_config_dir }}/app.ini --work-path {{ forgejo_work_dir }}
+    admin user list --admin
+  register: forgejo_admins
+  changed_when: false
+
+- name: Create forgejo admin
+  become_user: "{{ forgejo_user }}"
+  command: >-
+    {{ forgejo_install_dir }}/forgejo --config {{ forgejo_config_dir }}/app.ini --work-path {{ forgejo_work_dir }}
+    admin user create --admin
+    --username {{ forgejo_admin_username }}
+    --email {{ forgejo_admin_email }}
+    --password {{ lookup('file', forgejo_admin_password_file) | quote }}
+    --must-change-password=false
+  when: forgejo_admin_username not in forgejo_admins.stdout.split()
+  no_log: "{{ not (show_secrets | bool) }}"

@@ -1,0 +1,183 @@
+# forgejo-runner for general jobs (no infrastructure credentials), each in a Docker container.
+# Only pushes to Forgejo trigger jobs and only the owner has access, but jobs still run third-party
+# code (dependencies, actions, images), so the VM is kept as the boundary: the runner user is in
+# the docker group (root on this VM), mgmt's key is the only one authorized here, never the other
+# way round, and jobs can't reach the Docker socket.
+
+# Debian's Docker, upgraded by patch.yml.
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Enable Docker
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Ensure runner user exists
+  user:
+    name: "{{ forgejo_runner_user }}"
+    shell: /usr/sbin/nologin
+    system: yes
+    home: "{{ forgejo_runner_work_dir }}"
+    create_home: yes
+    groups: docker
+    append: yes
+
+- name: Ensure work directory permissions
+  file:
+    path: "{{ forgejo_runner_work_dir }}"
+    state: directory
+    owner: "{{ forgejo_runner_user }}"
+    group: "{{ forgejo_runner_user }}"
+    mode: '0750'
+
+- name: Ensure config directory exists
+  file:
+    path: "{{ forgejo_runner_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ forgejo_runner_user }}"
+    mode: '0750'
+
+# get_url only downloads when the file's checksum doesn't match, so this is the version check.
+- name: Install forgejo-runner binary
+  get_url:
+    url: "https://code.forgejo.org/forgejo/runner/releases/download/v{{ forgejo_runner_version }}/forgejo-runner-{{ forgejo_runner_version }}-linux-amd64"
+    checksum: "sha256:{{ forgejo_runner_sha256 }}"
+    dest: "{{ forgejo_runner_install_dir }}/forgejo-runner"
+    owner: root
+    group: root
+    mode: '0755'
+  notify: restart forgejo-runner
+
+- name: Deploy forgejo-runner config
+  copy:
+    dest: "{{ forgejo_runner_config_dir }}/config.yml"
+    owner: root
+    group: "{{ forgejo_runner_user }}"
+    mode: '0640'
+    content: |
+      # Managed by Ansible (forgejo_runner).
+      log:
+        level: info
+        job_level: info
+
+      runner:
+        file: {{ forgejo_runner_work_dir }}/.runner
+        capacity: {{ forgejo_runner_capacity }}
+        timeout: 3h
+        shutdown_timeout: 3h
+        insecure: false
+        fetch_timeout: 30s
+        fetch_interval: 2s
+        labels: {{ forgejo_runner_labels | to_json }}
+
+      cache:
+        enabled: true
+        dir: {{ forgejo_runner_work_dir }}/cache
+
+      container:
+        # A network per job.
+        network: ""
+        privileged: false
+        valid_volumes: []
+        # Don't mount the Docker socket into job containers.
+        docker_host: "-"
+        force_pull: false
+
+      host:
+        workdir_parent: {{ forgejo_runner_work_dir }}/host
+  notify: restart forgejo-runner
+
+# The registration (.runner) is derived from the secret, the forgejo role registers the same
+# secret on the server. Only created once, delete .runner to re-create it.
+- name: Create runner registration
+  become_user: "{{ forgejo_runner_user }}"
+  command: >-
+    {{ forgejo_runner_install_dir }}/forgejo-runner create-runner-file
+    --config {{ forgejo_runner_config_dir }}/config.yml
+    --instance {{ forgejo_runner_instance }}
+    --name {{ inventory_hostname }}
+    --secret {{ lookup('file', forgejo_runner_secret_file) | quote }}
+  args:
+    chdir: "{{ forgejo_runner_work_dir }}"
+    creates: "{{ forgejo_runner_work_dir }}/.runner"
+  no_log: "{{ not (show_secrets | bool) }}"
+  notify: restart forgejo-runner
+
+- name: Create systemd service for forgejo-runner
+  copy:
+    dest: /etc/systemd/system/forgejo-runner.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Forgejo Runner
+      Wants=network-online.target
+      After=network-online.target docker.service
+      Requires=docker.service
+
+      [Service]
+      User={{ forgejo_runner_user }}
+      Group={{ forgejo_runner_user }}
+      WorkingDirectory={{ forgejo_runner_work_dir }}
+      ExecStart={{ forgejo_runner_install_dir }}/forgejo-runner daemon --config {{ forgejo_runner_config_dir }}/config.yml
+      Restart=on-failure
+      RestartSec=10
+      # Let running jobs finish (runner.shutdown_timeout).
+      TimeoutStopSec=3h
+
+      [Install]
+      WantedBy=multi-user.target
+  notify:
+    - reload systemd
+    - restart forgejo-runner
+
+- name: Enable forgejo-runner
+  systemd:
+    name: forgejo-runner
+    enabled: yes
+    state: started
+
+# Job images and build cache pile up on the 60 GB disk.
+- name: Create docker prune service
+  copy:
+    dest: /etc/systemd/system/docker-prune.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Prune unused Docker data older than {{ forgejo_runner_prune_until }}
+      Requires=docker.service
+      After=docker.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/docker system prune --all --force --filter until={{ forgejo_runner_prune_until }}
+  notify: reload systemd
+
+- name: Create docker prune timer
+  copy:
+    dest: /etc/systemd/system/docker-prune.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Weekly Docker prune
+
+      [Timer]
+      OnCalendar=weekly
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  notify: reload systemd
+
+- name: Enable docker prune timer
+  systemd:
+    name: docker-prune.timer
+    enabled: yes
+    state: started
+    daemon_reload: yes

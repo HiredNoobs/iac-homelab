@@ -1,2 +1,0 @@
-swarm_cluster: "production.services"
-swarm_role: "worker"

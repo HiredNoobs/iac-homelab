@@ -1,0 +1,11 @@
+---
+# Before forgejo-runner.yml, the runners' secrets are registered here.
+- hosts: git
+  become: yes
+  gather_facts: false
+  vars:
+    certbot_domains: ["{{ forgejo_domain }}"]
+  roles:
+    - common
+    - certbot
+    - forgejo

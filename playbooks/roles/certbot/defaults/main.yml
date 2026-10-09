@@ -1,0 +1,8 @@
+# One certificate for these names, the first is its name (/etc/letsencrypt/live/<first>).
+certbot_domains: []
+
+# A Cloudflare API token with only Zone.DNS:Edit on the domain's zone.
+certbot_cloudflare_token_file: "{{ bootstrap_secrets_dir }}/cloudflare-api-token"
+
+# How long to wait for the DNS-01 TXT record to propagate.
+certbot_propagation_seconds: 30

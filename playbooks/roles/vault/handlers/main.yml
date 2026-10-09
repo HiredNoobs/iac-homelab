@@ -1,0 +1,11 @@
+# A restart seals Vault, unseal it afterwards with vault-unseal.yml.
+- name: restart vault
+  systemd:
+    name: vault
+    state: restarted
+
+# SIGHUP, Vault re-reads the listener's certificate without sealing.
+- name: reload vault
+  systemd:
+    name: vault
+    state: reloaded
