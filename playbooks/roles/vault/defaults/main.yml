@@ -2,8 +2,8 @@
 # vault_<version>_SHA256SUMS (check its .sig against HashiCorp's key). Keep the version the
 # data was last used with when restoring a snapshot, upgrade afterwards.
 # renovate: datasource=github-releases depName=hashicorp/vault extractVersion=^v(?<version>.+)$
-vault_version: "1.21.3"
-vault_sha256: "c945e90979a7b6e4b4846285587c35b25f8191f9f70cb879132bc118ae42c368"
+vault_version: "1.21.4"
+vault_sha256: "889b681990fe221b884b7932fa9c9dd0ee9811b9349554f1aa287ab63c9f3dae"
 
 # The name clients use, also the certbot certificate's name. Vault listens on 443 so
 # VAULT_ADDR=https://vault.<domain> (tools-bin) works without a port.
