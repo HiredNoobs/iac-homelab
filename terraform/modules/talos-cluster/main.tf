@@ -224,6 +224,13 @@ data "talos_machine_configuration" "node" {
         name       = var.vip
         link       = "net0"
       }),
+      # Trimmed from Talos' default (Metadata for everything), see the file. A change restarts
+      # kube-apiserver on each control plane.
+      yamlencode({
+        apiVersion    = "v1alpha1"
+        kind          = "KubeAuditPolicyConfig"
+        configuration = yamldecode(file("${path.module}/audit-policy.yaml"))
+      }),
     ] : [],
     # Keeps Longhorn's replicas off the system disk, so a full volume can't cause evictions.
     # User volumes are mounted under /var/mnt, which the kubelet already has, so it needs
