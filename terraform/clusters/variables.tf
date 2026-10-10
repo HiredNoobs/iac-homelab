@@ -86,7 +86,7 @@ variable "talos_contract" {
 # renovate: datasource=github-releases depName=kubernetes/kubernetes
 variable "kubernetes_version" {
   type    = string
-  default = "v1.37.0"
+  default = "v1.37.1"
 }
 
 variable "talos_extensions" {
