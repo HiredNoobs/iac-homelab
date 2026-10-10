@@ -1,4 +1,4 @@
 # Tools for workflows/lint.yml. requirements-lint.txt is compiled from this (exact versions with
 # hashes, Renovate keeps both up to date). By hand, in this directory:
 #   pip-compile --generate-hashes --output-file=requirements-lint.txt --strip-extras requirements-lint.in
-ansible-core==2.21.4
+ansible-core==2.21.5
