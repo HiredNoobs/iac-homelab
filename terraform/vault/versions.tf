@@ -1,6 +1,6 @@
 terraform {
   # Exact, upgrades are deliberate. Kept in step with the other roots.
-  required_version = "1.15.9"
+  required_version = "1.16.5"
 
   required_providers {
     vault = {
