@@ -232,6 +232,20 @@ data "talos_machine_configuration" "node" {
         configuration = yamldecode(file("${path.module}/audit-policy.yaml"))
       }),
     ] : [],
+    # etcd's metrics on their own plain HTTP port (2381); the client port
+    # still requires a client certificate.
+    # A change restarts etcd on that control plane.
+    local.roles[each.key] == "controlplane" && each.value.etcd_metrics ? [
+      yamlencode({
+        cluster = {
+          etcd = {
+            extraArgs = {
+              "listen-metrics-urls" = "http://0.0.0.0:2381"
+            }
+          }
+        }
+      }),
+    ] : [],
     # Keeps Longhorn's replicas off the system disk, so a full volume can't cause evictions.
     # User volumes are mounted under /var/mnt, which the kubelet already has, so it needs
     # no extraMounts (they can't be set anyway, .machine.kubelet conflicts with KubeletConfig).

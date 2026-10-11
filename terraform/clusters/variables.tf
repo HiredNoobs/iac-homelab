@@ -125,6 +125,7 @@ variable "clusters" {
       labels = optional(map(string), {})
 
       longhorn_disk = optional(number)
+      etcd_metrics  = optional(bool, false)
     }))
   }))
 
