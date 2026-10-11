@@ -1,6 +1,6 @@
 # kube-apiserver's audit policy (KubeAuditPolicyConfig, control planes only). Talos writes the log
 # to /var/log/audit/kube/kube-apiserver.log (100 MB per file, 10 kept, 30 days); iac-k8s'
-# kube-audit collector ships it to VictoriaLogs.
+# Vector (apps/base/vector) ships it to VictoriaLogs.
 #
 # The first matching rule decides an event's level. Talos' default (Metadata for everything) is
 # mostly the controllers' own reads and heartbeats, so those go first, at None. Everything else
