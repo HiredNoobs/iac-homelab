@@ -200,6 +200,40 @@
     - reload systemd
     - restart vault
 
+# -----------------------------------------------------
+# Audit log
+# -----------------------------------------------------
+
+# The file audit device (terraform/vault) writes here, Vault refuses to enable it without the
+# directory. Rotated daily, 14 kept; Vault reopens the file on SIGHUP (systemctl reload), which
+# only re-reads its certificate otherwise. The journal has the same entries (the stdout device).
+- name: Ensure audit log directory exists
+  file:
+    path: /var/log/vault
+    state: directory
+    owner: "{{ vault_user }}"
+    group: "{{ vault_user }}"
+    mode: '0750'
+
+- name: Rotate the audit log
+  copy:
+    dest: /etc/logrotate.d/vault
+    mode: '0644'
+    content: |
+      # Managed by Ansible (vault).
+      /var/log/vault/audit.log {
+          daily
+          rotate 14
+          compress
+          delaycompress
+          missingok
+          notifempty
+          create 0600 {{ vault_user }} {{ vault_user }}
+          postrotate
+              systemctl reload vault >/dev/null 2>&1 || true
+          endscript
+      }
+
 - name: Configure vault CLI
   copy:
     dest: /etc/profile.d/vault.sh
