@@ -23,7 +23,6 @@
 # node node.longhorn.io/create-default-disk=true, only these nodes get a Longhorn disk.
 #
 # `etcd_metrics` (control planes) serves etcd's metrics on :2381.
-# Changing it restarts etcd on running nodes.
 clusters = {
   # -----------------------------------------------------
   # Prod Core
@@ -73,6 +72,8 @@ clusters = {
         cores  = 2
         memory = 4096
         disk   = 50
+
+        etcd_metrics = true
       }
 
       prx-002-srv-prod-core-worker-001 = {
@@ -104,6 +105,8 @@ clusters = {
         cores  = 2
         memory = 4096
         disk   = 50
+
+        etcd_metrics = true
       }
 
       prx-003-srv-prod-core-worker-001 = {

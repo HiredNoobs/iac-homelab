@@ -234,7 +234,6 @@ data "talos_machine_configuration" "node" {
     ] : [],
     # etcd's metrics on their own plain HTTP port (2381); the client port
     # still requires a client certificate.
-    # A change restarts etcd on that control plane.
     local.roles[each.key] == "controlplane" && each.value.etcd_metrics ? [
       yamlencode({
         cluster = {
