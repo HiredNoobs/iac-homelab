@@ -94,3 +94,36 @@ resource "vault_kubernetes_auth_backend_role" "external_secrets" {
   token_ttl                        = 3600
   token_max_ttl                    = 3600
 }
+
+# -----------------------------------------------------
+# Audit
+# -----------------------------------------------------
+
+# Every request and response, with secrets and tokens HMAC'd. Two devices because Vault refuses
+# every request when no audit device can write: a full disk shouldn't stop it while the journal
+# still works, and the other way round.
+#
+# stdout lands in the journal (vault.service), which systemd-journal-upload sends to
+# VictoriaLogs for the security detections (iac-k8s rules/journald.yml). The file stays on the
+# VM, rotated by the vault role's logrotate (which reloads Vault so it reopens it); the
+# directory has to exist first (vault.yml), or Vault refuses to enable the device.
+resource "vault_audit" "stdout" {
+  type = "file"
+  path = "stdout"
+
+  options = {
+    file_path            = "stdout"
+    elide_list_responses = "true"
+  }
+}
+
+resource "vault_audit" "file" {
+  type = "file"
+  path = "file"
+
+  options = {
+    file_path            = "/var/log/vault/audit.log"
+    mode                 = "0600"
+    elide_list_responses = "true"
+  }
+}
