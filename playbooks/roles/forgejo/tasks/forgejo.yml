@@ -199,6 +199,7 @@
   register: forgejo_admins
   changed_when: false
 
+# Usernames are case-insensitive in Forgejo, a rename in the UI may only change the case.
 - name: Create forgejo admin
   become_user: "{{ forgejo_user }}"
   command: >-
@@ -208,5 +209,5 @@
     --email {{ forgejo_admin_email }}
     --password {{ lookup('file', forgejo_admin_password_file) | quote }}
     --must-change-password=false
-  when: forgejo_admin_username not in forgejo_admins.stdout.split()
+  when: forgejo_admin_username | lower not in forgejo_admins.stdout.lower().split()
   no_log: "{{ not (show_secrets | bool) }}"
