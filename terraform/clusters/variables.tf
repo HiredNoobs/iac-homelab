@@ -67,6 +67,10 @@ variable "vm_datastore" {
 
 # Installed Talos version, bumping this upgrades the nodes in place. One minor version at a time,
 # keep talosctl (tools-bin's context-setup) in line.
+#
+# Held below v1.14.2 until Falco 0.45.1 (iac-k8s apps/base/falco): v1.14.2's kernel (6.18.54)
+# rejects Falco 0.45.0's eBPF probe and Falco crash-loops on every node
+# (falcosecurity/falco#4017, fixed in falcosecurity/libs#3119). Upgrade Falco first.
 # renovate: datasource=github-releases depName=siderolabs/talos
 variable "talos_version" {
   type    = string
