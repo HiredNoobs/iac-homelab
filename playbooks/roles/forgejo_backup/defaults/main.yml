@@ -1,0 +1,31 @@
+# Forgejo to a restic repository on the NAS every night: its database, its work directory (repos,
+# LFS, attachments, packages, Actions logs) and its config with the generated secrets, which
+# have to be restored together (README, Backups).
+forgejo_backup_user: forgejo-backup
+forgejo_backup_config_dir: /etc/forgejo-backup
+
+forgejo_backup_paths:
+  - "{{ forgejo_work_dir }}"
+  - "{{ forgejo_config_dir }}"
+# Rebuilt by Forgejo, or only in flight.
+forgejo_backup_exclude:
+  - "{{ forgejo_work_dir }}/data/indexers"
+  - "{{ forgejo_work_dir }}/data/queues"
+  - "{{ forgejo_work_dir }}/data/repo-archive"
+  - "{{ forgejo_work_dir }}/data/tmp"
+
+# The share's user has access to that share only.
+forgejo_backup_nas_share: //192.168.111.6/forgejo-backups
+forgejo_backup_nas_username: forgejo-backups
+forgejo_backup_nas_password_file: "{{ bootstrap_secrets_dir }}/nas-forgejo-backups"
+forgejo_backup_mount: /mnt/forgejo-backups
+
+# Encrypts the repository. Without it the backups can't be read: keep a copy away from the VM.
+forgejo_backup_repository: "{{ forgejo_backup_mount }}/restic"
+forgejo_backup_password_file: "{{ bootstrap_secrets_dir }}/restic-forgejo"
+
+# After Vault's.
+forgejo_backup_schedule: "*-*-* 03:30:00"
+forgejo_backup_keep_daily: 14
+forgejo_backup_keep_weekly: 8
+forgejo_backup_keep_monthly: 12

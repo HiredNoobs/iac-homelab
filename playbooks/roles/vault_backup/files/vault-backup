@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Saves a Raft snapshot of Vault to DEST as <UTC time>.snap, then prunes old ones. Run as
+# vault-backup by vault-backup.service, which sets VAULT_ADDR and VAULT_TLS_SERVER_NAME and:
+#
+#   CREDENTIALS the directory with the AppRole's role-id and secret-id (backups.yml writes them)
+#   DEST        where the snapshots go
+#   KEEP_COPIES the newest snapshots that are always kept
+#   KEEP_DAYS   older snapshots are deleted once they're this many days old
+#
+# A sealed Vault refuses the login, so the service fails until it's unsealed.
+
+set -euo pipefail
+
+: "${CREDENTIALS:?}" "${DEST:?}" "${KEEP_COPIES:?}" "${KEEP_DAYS:?}"
+
+name="$(date -u +%Y%m%dT%H%M%SZ).snap"
+tmp=$(mktemp)
+partial="$DEST/.$name.partial"
+trap 'rm -f "$tmp" "$partial"' EXIT
+
+# The token only works from this VM and can only take a snapshot and revoke itself. @file keeps
+# the secret ID out of the process list.
+VAULT_TOKEN=$(vault write -field=token auth/approle/login \
+  role_id=@"$CREDENTIALS/role-id" secret_id=@"$CREDENTIALS/secret-id")
+export VAULT_TOKEN
+trap 'vault token revoke -self > /dev/null || true; rm -f "$tmp" "$partial"' EXIT
+
+vault operator raft snapshot save "$tmp"
+
+# Under a name the pruning ignores until it's complete.
+cp "$tmp" "$partial"
+mv "$partial" "$DEST/$name"
+echo "Saved $name, $(stat -c %s "$DEST/$name") bytes"
+
+# Newest first, the first KEEP_COPIES stay whatever their age.
+find "$DEST" -maxdepth 1 -name '*.snap' | sort -r | tail -n "+$((KEEP_COPIES + 1))" |
+  while read -r file; do
+    if [[ -n $(find "$file" -mtime "+$KEEP_DAYS") ]]; then
+      rm -f -- "$file"
+      echo "Pruned $file"
+    fi
+  done

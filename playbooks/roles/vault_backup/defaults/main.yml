@@ -1,0 +1,23 @@
+# A Raft snapshot of Vault to the NAS every night. Snapshots are encrypted by Vault: restoring one
+# needs keys.json's unseal keys, which never go on the share (README, Backups).
+vault_backup_user: vault-backup
+vault_backup_config_dir: /etc/vault-backup
+
+# The AppRole in terraform/vault, its secret ID is created by backups.yml. To replace it (every
+# older one is destroyed): -e vault_backup_new_secret_id=true.
+vault_backup_approle: vault-backup
+vault_backup_new_secret_id: false
+# The controller talks to Vault with the root token from here, to create the secret ID.
+vault_backup_keys_file: "{{ bootstrap_secrets_dir }}/vault-keys.json"
+
+# The share's user has access to that share only.
+vault_backup_nas_share: //192.168.111.6/vault-backups
+vault_backup_nas_username: vault-backups
+vault_backup_nas_password_file: "{{ bootstrap_secrets_dir }}/nas-vault-backups"
+vault_backup_mount: /mnt/vault-backups
+
+# After Longhorn's nightly backups (03:00), before Forgejo's.
+vault_backup_schedule: "*-*-* 03:15:00"
+# The newest snapshots are always kept; older ones go once they're this many days old.
+vault_backup_keep_copies: 14
+vault_backup_keep_days: 90

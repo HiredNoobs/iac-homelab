@@ -1,0 +1,181 @@
+# Forgejo to a restic repository on the NAS every night, as a user of its own: Forgejo (git)
+# can't read or delete the backups, and the backup can only read Forgejo's files and database.
+
+- name: Install restic and cifs-utils
+  apt:
+    name:
+      - restic
+      - cifs-utils
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Ensure the backup user exists
+  user:
+    name: "{{ forgejo_backup_user }}"
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+    home: "/var/lib/{{ forgejo_backup_user }}"
+
+# Its home, and the service's state directory (the dump). Made here too: Ansible keeps its temp
+# files in the home when it runs the restic tasks as the user.
+- name: Ensure the backup user's home exists
+  file:
+    path: "/var/lib/{{ forgejo_backup_user }}"
+    state: directory
+    owner: "{{ forgejo_backup_user }}"
+    group: "{{ forgejo_backup_user }}"
+    mode: '0700'
+
+- name: Ensure the config directory exists
+  file:
+    path: "{{ forgejo_backup_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ forgejo_backup_user }}"
+    mode: '0750'
+
+- name: Deploy the repository password
+  copy:
+    dest: "{{ forgejo_backup_config_dir }}/restic-password"
+    owner: root
+    group: "{{ forgejo_backup_user }}"
+    mode: '0640'
+    content: "{{ lookup('file', forgejo_backup_password_file) }}"
+  no_log: "{{ not (show_secrets | bool) }}"
+
+- name: Deploy the exclude list
+  copy:
+    dest: "{{ forgejo_backup_config_dir }}/exclude"
+    mode: '0644'
+    content: |
+      {% for path in forgejo_backup_exclude %}
+      {{ path }}
+      {% endfor %}
+
+# Re-applied every run, so it never reports a change. Peer auth: the OS user of the same name, over
+# the local socket only (Debian's pg_hba.conf). Read only, every table.
+- name: Let the backup user dump the database
+  become_user: postgres
+  command: psql -X -q -v ON_ERROR_STOP=1 -d postgres
+  args:
+    stdin: |
+      SELECT 'CREATE ROLE "{{ forgejo_backup_user }}" LOGIN'
+        WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ forgejo_backup_user }}') \gexec
+      GRANT pg_read_all_data TO "{{ forgejo_backup_user }}";
+      GRANT CONNECT ON DATABASE forgejo TO "{{ forgejo_backup_user }}";
+  changed_when: false
+
+# --- The NAS -----------------------------------------------------------------------------------
+
+- name: Deploy the NAS credentials
+  copy:
+    dest: "{{ forgejo_backup_config_dir }}/nas-credentials"
+    owner: root
+    group: root
+    mode: '0600'
+    content: |
+      username={{ forgejo_backup_nas_username }}
+      password={{ lookup('file', forgejo_backup_nas_password_file) }}
+  no_log: "{{ not (show_secrets | bool) }}"
+
+# Mounted when first used, so a NAS that's down doesn't hold up the boot; the backup then fails
+# (HostSystemdServiceCrashed in iac-k8s). Only the backup user can read or write it.
+- name: Mount the NAS share
+  mount:
+    path: "{{ forgejo_backup_mount }}"
+    src: "{{ forgejo_backup_nas_share }}"
+    fstype: cifs
+    opts: "credentials={{ forgejo_backup_config_dir }}/nas-credentials,vers=3.1.1,uid={{ forgejo_backup_user }},gid={{ forgejo_backup_user }},file_mode=0600,dir_mode=0700,_netdev,nofail,x-systemd.automount"
+    state: mounted
+
+# --- The repository ----------------------------------------------------------------------------
+
+# 10: there's no repository there yet. Anything else (a wrong password, the NAS down) fails here.
+- name: Check for the restic repository
+  become_user: "{{ forgejo_backup_user }}"
+  command: restic cat config --no-cache
+  environment: &forgejo_backup_restic_env
+    RESTIC_REPOSITORY: "{{ forgejo_backup_repository }}"
+    RESTIC_PASSWORD_FILE: "{{ forgejo_backup_config_dir }}/restic-password"
+  register: forgejo_backup_repository_config
+  changed_when: false
+  failed_when: forgejo_backup_repository_config.rc not in [0, 10]
+
+- name: Create the restic repository
+  become_user: "{{ forgejo_backup_user }}"
+  command: restic init --no-cache
+  environment: *forgejo_backup_restic_env
+  when: forgejo_backup_repository_config.rc == 10
+
+# --- The backup --------------------------------------------------------------------------------
+
+- name: Install the backup script
+  copy:
+    src: forgejo-backup
+    dest: /usr/local/bin/forgejo-backup
+    mode: '0755'
+
+# CAP_DAC_READ_SEARCH reads every file without being root (restic's docs). The dump goes in the
+# state directory, the restic cache in the cache directory, both made by systemd for the user.
+# GODEBUG: restic's docs, for repositories on CIFS.
+- name: Create the backup service
+  copy:
+    dest: /etc/systemd/system/forgejo-backup.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Back up Forgejo to the NAS
+      Wants=network-online.target
+      After=network-online.target postgresql.service forgejo.service
+
+      [Service]
+      Type=oneshot
+      User={{ forgejo_backup_user }}
+      Group={{ forgejo_backup_user }}
+      AmbientCapabilities=CAP_DAC_READ_SEARCH
+      CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+      StateDirectory={{ forgejo_backup_user }}
+      StateDirectoryMode=0700
+      CacheDirectory={{ forgejo_backup_user }}
+      CacheDirectoryMode=0700
+      Environment=RESTIC_REPOSITORY={{ forgejo_backup_repository }}
+      Environment=RESTIC_PASSWORD_FILE={{ forgejo_backup_config_dir }}/restic-password
+      Environment=RESTIC_CACHE_DIR=/var/cache/{{ forgejo_backup_user }}
+      Environment=GODEBUG=asyncpreemptoff=1
+      Environment=DATABASE=forgejo
+      Environment=DUMP=/var/lib/{{ forgejo_backup_user }}/forgejo.sql
+      Environment=EXCLUDE_FILE={{ forgejo_backup_config_dir }}/exclude
+      Environment=KEEP_DAILY={{ forgejo_backup_keep_daily }}
+      Environment=KEEP_WEEKLY={{ forgejo_backup_keep_weekly }}
+      Environment=KEEP_MONTHLY={{ forgejo_backup_keep_monthly }}
+      ExecStart=/usr/local/bin/forgejo-backup {{ forgejo_backup_paths | join(' ') }}
+      NoNewPrivileges=yes
+      ProtectSystem=full
+      ProtectHome=yes
+      PrivateTmp=yes
+  notify: reload systemd
+
+- name: Create the backup timer
+  copy:
+    dest: /etc/systemd/system/forgejo-backup.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Nightly Forgejo backup to the NAS
+
+      [Timer]
+      OnCalendar={{ forgejo_backup_schedule }}
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  notify: reload systemd
+
+- name: Enable the backup timer
+  systemd:
+    name: forgejo-backup.timer
+    enabled: yes
+    state: started
+    daemon_reload: yes

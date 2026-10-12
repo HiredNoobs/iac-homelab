@@ -30,6 +30,7 @@ GITOPS_PLAYBOOKS=(
   forgejo-runner.yml
   forgejo-repos.yml
   terraform-state.yml
+  backups.yml
   mgmt.yml
 )
 

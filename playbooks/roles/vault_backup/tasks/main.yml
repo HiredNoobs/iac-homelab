@@ -1,0 +1,139 @@
+# A nightly Raft snapshot of Vault to the NAS, taken with an AppRole (terraform/vault) that can do
+# nothing else.
+
+- name: Ensure the backup user exists
+  user:
+    name: "{{ vault_backup_user }}"
+    shell: /usr/sbin/nologin
+    system: yes
+    create_home: no
+    home: /nonexistent
+
+- name: Ensure the config directory exists
+  file:
+    path: "{{ vault_backup_config_dir }}"
+    state: directory
+    owner: root
+    group: "{{ vault_backup_user }}"
+    mode: '0750'
+
+# --- The NAS -----------------------------------------------------------------------------------
+
+- name: Install cifs-utils
+  apt:
+    name: cifs-utils
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Deploy the NAS credentials
+  copy:
+    dest: "{{ vault_backup_config_dir }}/nas-credentials"
+    owner: root
+    group: root
+    mode: '0600'
+    content: |
+      username={{ vault_backup_nas_username }}
+      password={{ lookup('file', vault_backup_nas_password_file) }}
+  no_log: "{{ not (show_secrets | bool) }}"
+
+# Mounted when first used, so a NAS that's down doesn't hold up the boot; the backup then fails
+# (HostSystemdServiceCrashed in iac-k8s). Only the backup user can read or write it.
+- name: Mount the NAS share
+  mount:
+    path: "{{ vault_backup_mount }}"
+    src: "{{ vault_backup_nas_share }}"
+    fstype: cifs
+    opts: "credentials={{ vault_backup_config_dir }}/nas-credentials,vers=3.1.1,uid={{ vault_backup_user }},gid={{ vault_backup_user }},file_mode=0600,dir_mode=0700,_netdev,nofail,x-systemd.automount"
+    state: mounted
+
+# --- The AppRole's credentials -----------------------------------------------------------------
+
+- name: Check for the secret ID
+  stat:
+    path: "{{ vault_backup_config_dir }}/secret-id"
+  register: vault_backup_secret_id_file
+
+# Without a token, from the controller: the secret ID is created there with the root token, which
+# never goes on the VM.
+- name: Check Vault is unsealed
+  uri:
+    url: "https://{{ vault_domain }}/v1/sys/health"
+    status_code: [200, 429, 472, 473, 501, 503]
+  delegate_to: localhost
+  become: false
+  register: vault_backup_health
+  when: vault_backup_new_secret_id | bool or not vault_backup_secret_id_file.stat.exists
+
+- name: Vault isn't ready for the secret ID
+  debug:
+    msg: >-
+      Vault is {{ 'not initialised' if vault_backup_health.status == 501 else 'sealed' }}, so the
+      backup has no secret ID and fails until it does: unseal Vault (vault-unseal.yml) and run
+      backups.yml again.
+  when: vault_backup_health.status is defined and vault_backup_health.status != 200
+
+- name: Create the secret ID
+  include_tasks: secret-id.yml
+  vars:
+    vault_backup_vault_url: "https://{{ vault_domain }}/v1/auth/approle/role/{{ vault_backup_approle }}"
+    vault_backup_root_token: "{{ (lookup('file', vault_backup_keys_file) | from_json).root_token }}"
+  when: vault_backup_health.status is defined and vault_backup_health.status == 200
+
+# --- The backup --------------------------------------------------------------------------------
+
+- name: Install the backup script
+  copy:
+    src: vault-backup
+    dest: /usr/local/bin/vault-backup
+    mode: '0755'
+
+- name: Create the backup service
+  copy:
+    dest: /etc/systemd/system/vault-backup.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Save a Vault snapshot to the NAS
+      Wants=network-online.target
+      After=network-online.target vault.service
+
+      [Service]
+      Type=oneshot
+      User={{ vault_backup_user }}
+      Group={{ vault_backup_user }}
+      Environment=VAULT_ADDR={{ vault_cli_addr }}
+      Environment=VAULT_TLS_SERVER_NAME={{ vault_domain }}
+      Environment=CREDENTIALS={{ vault_backup_config_dir }}
+      Environment=DEST={{ vault_backup_mount }}
+      Environment=KEEP_COPIES={{ vault_backup_keep_copies }}
+      Environment=KEEP_DAYS={{ vault_backup_keep_days }}
+      ExecStart=/usr/local/bin/vault-backup
+      NoNewPrivileges=yes
+      ProtectSystem=full
+      ProtectHome=yes
+      PrivateTmp=yes
+  notify: reload systemd
+
+- name: Create the backup timer
+  copy:
+    dest: /etc/systemd/system/vault-backup.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Nightly Vault snapshot to the NAS
+
+      [Timer]
+      OnCalendar={{ vault_backup_schedule }}
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  notify: reload systemd
+
+- name: Enable the backup timer
+  systemd:
+    name: vault-backup.timer
+    enabled: yes
+    state: started
+    daemon_reload: yes
