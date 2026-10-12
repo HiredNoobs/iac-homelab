@@ -1,0 +1,29 @@
+# Terraform's state for the clusters and vault roots (the pg backend), in Forgejo's Postgres. The
+# gitops root keeps its state on the machine running build.sh: applying it can rebuild this VM.
+terraform_state_database: terraform
+
+# Owns the database and everything in it. Clients log in as themselves and act as it (their
+# session role), so whatever one creates the others can use.
+terraform_state_owner: terraform_state
+
+# Who may connect, over TLS with a password, each from its own address range. Passwords are
+# openssl rand -hex 32 (they go in PG_CONN_STR, so no characters that need escaping in a URL).
+# terraform is build.sh's, from the LAN.
+terraform_state_clients:
+  - name: terraform
+    address: 192.168.50.0/24
+    password_file: "{{ bootstrap_secrets_dir }}/postgres-password"
+
+# Clients connect to this name, Postgres serves the certbot certificate (forgejo.yml) for it.
+terraform_state_domain: "git.{{ domain }}"
+
+# Copies of every state on the NAS, written when a state changes: the way back if this VM is lost
+# (README, Terraform state). The share's user has access to that share only.
+terraform_state_nas_share: //192.168.111.6/terraform-state
+terraform_state_nas_username: terraform
+terraform_state_nas_password_file: "{{ bootstrap_secrets_dir }}/nas-terraform-state"
+terraform_state_mount: /mnt/terraform-state
+
+# Per root, the newest copies are always kept; older ones go once they're this many days old.
+terraform_state_keep_copies: 20
+terraform_state_keep_days: 90

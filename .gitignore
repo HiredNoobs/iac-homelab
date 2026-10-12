@@ -5,6 +5,8 @@
 *.tfstate.*
 *.tfplan
 tfplan
+# The break-glass local backend (README), never committed
+*_override.tf
 
 # Bootstrap secrets, see the README
 /secrets/

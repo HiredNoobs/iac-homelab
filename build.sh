@@ -29,10 +29,20 @@ GITOPS_PLAYBOOKS=(
   forgejo.yml
   forgejo-runner.yml
   forgejo-repos.yml
+  terraform-state.yml
   mgmt.yml
 )
 
 # Vault's config has no hosts, nothing runs after it.
+
+# The clusters and vault roots keep their state in Postgres on the git VM (terraform-state.yml),
+# as this database role unless PG_CONN_STR is already set. The gitops root's stays here, in
+# terraform/gitops/, with a copy on the NAS after each apply (smbclient, as NAS_USER).
+STATE_HOST=git.hirednoobs.com
+STATE_DATABASE=terraform
+STATE_ROLE=terraform
+NAS_SHARE=//192.168.111.6/terraform-state
+NAS_USER=terraform
 
 # -----------------------------------------------------
 # Functions
@@ -71,7 +81,22 @@ function run_terraform {
   fi
 
   rm -f tfplan
+  [[ "$ROOT" == "gitops" ]] && copy_gitops_state
   cd "$HERE" || exit 1
+}
+
+# The gitops root's state to the NAS, named like the git VM's copies of the others. A failure
+# doesn't stop the build (the apply is done), but needs fixing: this is the only other copy.
+function copy_gitops_state {
+  local name
+
+  name="$(date -u +%Y%m%dT%H%M%SZ)-$(jq -r .serial terraform.tfstate).tfstate"
+  if PASSWD=$(cat "$HERE/secrets/nas-terraform-state") \
+    smbclient "$NAS_SHARE" -U "$NAS_USER" -D gitops -c "put terraform.tfstate $name"; then
+    echo "Copied the gitops state to $NAS_SHARE/gitops/$name"
+  else
+    echo "WARNING: the gitops state wasn't copied to the NAS, copy terraform/gitops/terraform.tfstate by hand."
+  fi
 }
 
 function run_playbooks {
@@ -121,6 +146,11 @@ fi
 if [[ "$ROOT" == "vault" && -z "${VAULT_TOKEN:-}" ]]; then
   VAULT_TOKEN=$(jq -r .root_token "$HERE/secrets/vault-keys.json") || exit 1
   export VAULT_TOKEN
+fi
+
+if [[ "$ROOT" != "gitops" && -z "${PG_CONN_STR:-}" ]]; then
+  PG_CONN_STR="postgres://$STATE_ROLE:$(cat "$HERE/secrets/postgres-password")@$STATE_HOST/$STATE_DATABASE?sslmode=verify-full" || exit 1
+  export PG_CONN_STR
 fi
 
 run_terraform

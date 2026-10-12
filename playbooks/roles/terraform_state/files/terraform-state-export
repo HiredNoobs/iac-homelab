@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+#
+# Copies each Terraform state in the pg backend's database to DEST when it changed since the last
+# copy, then prunes old copies. Run as root by terraform-state-export.service, which sets:
+#
+#   DATABASE    the pg backend's database, one schema per root (<schema>.states)
+#   DEST        where the copies go: <root>/<UTC time>-<serial>.tfstate, other workspaces than
+#               default in <root>/<workspace>/
+#   KEEP_COPIES the newest copies in each directory that are always kept
+#   KEEP_DAYS   older copies are deleted once they're this many days old
+#
+# Pruning covers every directory under DEST, gitops/ too (copied there by build.sh).
+
+set -euo pipefail
+
+: "${DATABASE:?}" "${DEST:?}" "${KEEP_COPIES:?}" "${KEEP_DAYS:?}"
+
+# As the postgres superuser (peer auth). Queries come on stdin so psql's :'var' quoting applies.
+function query {
+  runuser -u postgres -- psql -X -q -t -A -v ON_ERROR_STOP=1 -d "$DATABASE" "$@"
+}
+
+function copy_states {
+  local schema workspace dir serial newest tmp
+
+  tmp=$(mktemp)
+  # shellcheck disable=SC2064 # expand now, tmp is local
+  trap "rm -f '$tmp'" RETURN
+
+  # The pg backend's tables: <schema>.states (name = the workspace, data = the state JSON).
+  query <<< "SELECT table_schema FROM information_schema.tables WHERE table_name = 'states' ORDER BY 1" |
+    while read -r schema; do
+      query -v schema="$schema" <<< "SELECT name FROM :\"schema\".states ORDER BY name" |
+        while read -r workspace; do
+          dir="$DEST/$schema"
+          [[ "$workspace" == "default" ]] || dir="$dir/$workspace"
+          mkdir -p "$dir"
+
+          query -v schema="$schema" -v workspace="$workspace" \
+            <<< "SELECT data FROM :\"schema\".states WHERE name = :'workspace'" > "$tmp"
+
+          # Unchanged since the last copy (names sort by time).
+          newest=$(find "$dir" -maxdepth 1 -name '*.tfstate' | sort | tail -n 1)
+          if [[ -n "$newest" ]] && cmp -s "$tmp" "$newest"; then
+            continue
+          fi
+
+          serial=$(query -v schema="$schema" -v workspace="$workspace" \
+            <<< "SELECT data::json->>'serial' FROM :\"schema\".states WHERE name = :'workspace'")
+          cp "$tmp" "$dir/$(date -u +%Y%m%dT%H%M%SZ)-$serial.tfstate"
+          echo "Copied $schema ($workspace), serial $serial"
+        done
+    done
+}
+
+function prune {
+  local dir file
+
+  find "$DEST" -name '*.tfstate' -printf '%h\n' | sort -u |
+    while read -r dir; do
+      # Newest first, the first KEEP_COPIES stay whatever their age.
+      find "$dir" -maxdepth 1 -name '*.tfstate' | sort -r | tail -n "+$((KEEP_COPIES + 1))" |
+        while read -r file; do
+          if [[ -n $(find "$file" -mtime "+$KEEP_DAYS") ]]; then
+            rm -f -- "$file"
+            echo "Pruned $file"
+          fi
+        done
+    done
+}
+
+copy_states
+prune

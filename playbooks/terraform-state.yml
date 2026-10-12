@@ -1,0 +1,8 @@
+---
+# After forgejo.yml: Postgres and the certificate come from there.
+- hosts: git
+  become: yes
+  gather_facts: false
+  roles:
+    - common
+    - terraform_state

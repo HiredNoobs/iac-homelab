@@ -73,4 +73,4 @@ jobs:
         run: ansible-playbook --syntax-check *.yml
 
       - name: Shell
-        run: shellcheck build.sh teardown.sh .forgejo/scripts/update-pins.sh
+        run: shellcheck build.sh teardown.sh .forgejo/scripts/update-pins.sh playbooks/roles/terraform_state/files/terraform-state-export

@@ -1,0 +1,195 @@
+# Terraform's state in Forgejo's Postgres (the forgejo role installs it), reachable over TLS from
+# terraform_state_clients, and copied to the NAS whenever it changes.
+
+- name: Find the Postgres cluster's version
+  command: pg_lsclusters --no-header
+  register: terraform_state_pg_clusters
+  changed_when: false
+
+- name: Set the Postgres config directory
+  set_fact:
+    terraform_state_pg_conf: "/etc/postgresql/{{ terraform_state_pg_clusters.stdout.split()[0] }}/main"
+
+# --- TLS ---------------------------------------------------------------------------------------
+
+# Postgres wants its key owned by itself, so it gets copies of the certbot certificate rather than
+# reading /etc/letsencrypt. The deploy hook refreshes them on renewal.
+- name: Ensure the Postgres TLS directory exists
+  file:
+    path: /etc/postgresql/ssl
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0700'
+
+- name: Copy the certificate for Postgres
+  copy:
+    src: "/etc/letsencrypt/live/{{ terraform_state_domain }}/{{ item.src }}"
+    dest: "/etc/postgresql/ssl/{{ terraform_state_domain }}.{{ item.ext }}"
+    remote_src: yes
+    owner: postgres
+    group: postgres
+    mode: '0600'
+  loop:
+    - { src: fullchain.pem, ext: crt }
+    - { src: privkey.pem, ext: key }
+  notify: reload postgresql
+
+- name: Deploy certbot renewal hook
+  copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/postgresql
+    mode: '0755'
+    content: |
+      #!/bin/sh
+      # Managed by Ansible (terraform_state). Gives Postgres the renewed certificate, a reload
+      # picks it up.
+      [ "$RENEWED_LINEAGE" = "/etc/letsencrypt/live/{{ terraform_state_domain }}" ] || exit 0
+      install -o postgres -g postgres -m 0600 "$RENEWED_LINEAGE/fullchain.pem" /etc/postgresql/ssl/{{ terraform_state_domain }}.crt
+      install -o postgres -g postgres -m 0600 "$RENEWED_LINEAGE/privkey.pem" /etc/postgresql/ssl/{{ terraform_state_domain }}.key
+      systemctl reload postgresql
+
+# --- Listener and access -----------------------------------------------------------------------
+
+# Debian's postgresql.conf includes conf.d last, so these win. Listening everywhere, pg_hba.conf
+# decides who gets in (local Forgejo, and the clients below).
+- name: Configure Postgres for remote clients
+  copy:
+    dest: "{{ terraform_state_pg_conf }}/conf.d/terraform-state.conf"
+    mode: '0644'
+    content: |
+      # Managed by Ansible (terraform_state).
+      listen_addresses = '*'
+      ssl = on
+      ssl_cert_file = '/etc/postgresql/ssl/{{ terraform_state_domain }}.crt'
+      ssl_key_file = '/etc/postgresql/ssl/{{ terraform_state_domain }}.key'
+  notify: restart postgresql
+
+# Only TLS, only the state database, each client from its own range. Anything else matches no
+# line and is refused.
+- name: Allow the Terraform clients
+  blockinfile:
+    path: "{{ terraform_state_pg_conf }}/pg_hba.conf"
+    marker: "# {mark} Managed by Ansible (terraform_state)"
+    block: |
+      {% for client in terraform_state_clients %}
+      hostssl {{ terraform_state_database }} {{ client.name }} {{ client.address }} scram-sha-256
+      {% endfor %}
+  notify: reload postgresql
+
+- name: Apply Postgres changes
+  meta: flush_handlers
+
+# --- Database and roles ------------------------------------------------------------------------
+
+# Re-applied every run (a password changed in secrets/ takes effect), so it never reports a change.
+# Clients act as the owner (their session role), so the schemas and tables the pg backend creates
+# belong to it and every client can use them.
+- name: Create the state database and its roles
+  become_user: postgres
+  command: psql -X -q -v ON_ERROR_STOP=1 -d postgres
+  args:
+    stdin: |
+      SELECT 'CREATE ROLE "{{ terraform_state_owner }}" NOLOGIN'
+        WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ terraform_state_owner }}') \gexec
+      SELECT 'CREATE DATABASE "{{ terraform_state_database }}" OWNER "{{ terraform_state_owner }}" ENCODING ''UTF8'' LOCALE ''C.UTF-8'' TEMPLATE template0'
+        WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{ terraform_state_database }}') \gexec
+      REVOKE ALL ON DATABASE "{{ terraform_state_database }}" FROM PUBLIC;
+      {% for client in terraform_state_clients %}
+      SELECT 'CREATE ROLE "{{ client.name }}" LOGIN'
+        WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '{{ client.name }}') \gexec
+      ALTER ROLE "{{ client.name }}" LOGIN PASSWORD '{{ lookup('file', client.password_file) }}';
+      GRANT "{{ terraform_state_owner }}" TO "{{ client.name }}";
+      ALTER ROLE "{{ client.name }}" SET role = '{{ terraform_state_owner }}';
+      {% endfor %}
+  changed_when: false
+  no_log: "{{ not (show_secrets | bool) }}"
+
+# --- Copies on the NAS -------------------------------------------------------------------------
+
+- name: Install cifs-utils
+  apt:
+    name: cifs-utils
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Ensure the NAS credentials directory exists
+  file:
+    path: /etc/terraform-state
+    state: directory
+    mode: '0700'
+
+- name: Deploy the NAS credentials
+  copy:
+    dest: /etc/terraform-state/nas-credentials
+    mode: '0600'
+    content: |
+      username={{ terraform_state_nas_username }}
+      password={{ lookup('file', terraform_state_nas_password_file) }}
+  no_log: "{{ not (show_secrets | bool) }}"
+
+# Mounted when first used, so a NAS that's down doesn't hold up the boot; the export then fails
+# (HostSystemdServiceCrashed in iac-k8s).
+- name: Mount the NAS share
+  mount:
+    path: "{{ terraform_state_mount }}"
+    src: "{{ terraform_state_nas_share }}"
+    fstype: cifs
+    opts: "credentials=/etc/terraform-state/nas-credentials,vers=3.1.1,file_mode=0600,dir_mode=0700,_netdev,nofail,x-systemd.automount"
+    state: mounted
+
+# build.sh puts the gitops root's copies here. No mode: the mount options set it.
+- name: Ensure the gitops directory exists on the share
+  file:
+    path: "{{ terraform_state_mount }}/gitops"
+    state: directory
+
+- name: Install the export script
+  copy:
+    src: terraform-state-export
+    dest: /usr/local/bin/terraform-state-export
+    mode: '0755'
+
+# Hourly: a copy within the hour of any apply (CI or build.sh), and the journal stays quiet when
+# nothing changed.
+- name: Create the export service
+  copy:
+    dest: /etc/systemd/system/terraform-state-export.service
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Copy changed Terraform states to the NAS
+      Requires=postgresql.service
+      After=postgresql.service
+
+      [Service]
+      Type=oneshot
+      Environment=DATABASE={{ terraform_state_database }}
+      Environment=DEST={{ terraform_state_mount }}
+      Environment=KEEP_COPIES={{ terraform_state_keep_copies }}
+      Environment=KEEP_DAYS={{ terraform_state_keep_days }}
+      ExecStart=/usr/local/bin/terraform-state-export
+  notify: reload systemd
+
+- name: Create the export timer
+  copy:
+    dest: /etc/systemd/system/terraform-state-export.timer
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Hourly copy of changed Terraform states to the NAS
+
+      [Timer]
+      OnCalendar=hourly
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  notify: reload systemd
+
+- name: Enable the export timer
+  systemd:
+    name: terraform-state-export.timer
+    enabled: yes
+    state: started
+    daemon_reload: yes

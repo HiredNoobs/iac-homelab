@@ -2,6 +2,12 @@ terraform {
   # Exact, upgrades are deliberate. Kept in step with the other roots.
   required_version = "1.15.9"
 
+  # In Postgres on the git VM (PG_CONN_STR, set by build.sh). Without it, from a copy on the NAS:
+  # README, Terraform state.
+  backend "pg" {
+    schema_name = "vault"
+  }
+
   required_providers {
     vault = {
       source  = "hashicorp/vault"
