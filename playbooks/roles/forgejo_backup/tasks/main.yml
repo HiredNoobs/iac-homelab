@@ -18,6 +18,16 @@
     create_home: no
     home: "/var/lib/{{ forgejo_backup_user }}"
 
+# Its home, and the service's state directory (the dump). Made here too: Ansible keeps its temp
+# files in the home when it runs the restic tasks as the user.
+- name: Ensure the backup user's home exists
+  file:
+    path: "/var/lib/{{ forgejo_backup_user }}"
+    state: directory
+    owner: "{{ forgejo_backup_user }}"
+    group: "{{ forgejo_backup_user }}"
+    mode: '0700'
+
 - name: Ensure the config directory exists
   file:
     path: "{{ forgejo_backup_config_dir }}"
