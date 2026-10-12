@@ -169,6 +169,45 @@ resource "vault_jwt_auth_backend_role" "clusters_plan" {
 }
 
 # -----------------------------------------------------
+# Backups
+# -----------------------------------------------------
+
+# Machines logging in with a role ID and a secret ID. The secret IDs aren't managed here (they'd
+# be in the state), backups.yml creates them.
+resource "vault_auth_backend" "approle" {
+  type = "approle"
+  path = "approle"
+}
+
+# Taking a snapshot, and revoking its own token after.
+resource "vault_policy" "vault_backup" {
+  name   = "vault-backup"
+  policy = <<-EOT
+    path "sys/storage/raft/snapshot" {
+      capabilities = ["read"]
+    }
+
+    path "auth/token/revoke-self" {
+      capabilities = ["update"]
+    }
+  EOT
+}
+
+# The Vault VM's nightly snapshot to the NAS (playbooks/roles/vault_backup). Its secret ID and
+# tokens only work from the VM itself (the backup talks to Vault on 127.0.0.1), and the
+# snapshots are only readable with the unseal keys.
+resource "vault_approle_auth_backend_role" "vault_backup" {
+  backend                 = vault_auth_backend.approle.path
+  role_name               = "vault-backup"
+  token_policies          = [vault_policy.vault_backup.name]
+  token_no_default_policy = true
+  secret_id_bound_cidrs   = ["127.0.0.1/32"]
+  token_bound_cidrs       = ["127.0.0.1/32"]
+  token_ttl               = 300
+  token_max_ttl           = 300
+}
+
+# -----------------------------------------------------
 # Audit
 # -----------------------------------------------------
 

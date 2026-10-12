@@ -1,0 +1,23 @@
+---
+# Backups of prx-999's data to the NAS (README, Backups). After vault.yml and forgejo.yml. Vault's
+# needs terraform/vault applied (its AppRole) and Vault unsealed to create its secret ID, and
+# says so when it can't.
+- hosts: vault
+  become: yes
+  gather_facts: false
+  # vault_domain and vault_cli_addr, without running the role.
+  vars_files:
+    - roles/vault/defaults/main.yml
+  roles:
+    - common
+    - vault_backup
+
+- hosts: git
+  become: yes
+  gather_facts: false
+  # forgejo_work_dir and forgejo_config_dir.
+  vars_files:
+    - roles/forgejo/defaults/main.yml
+  roles:
+    - common
+    - forgejo_backup

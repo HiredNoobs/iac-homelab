@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#
+# Backs up Forgejo into a restic repository: a dump of its database and the paths given as
+# arguments, in one snapshot. Then forgets old snapshots, prunes and checks the repository. Run
+# as forgejo-backup by forgejo-backup.service (which lets it read every file), which sets:
+#
+#   RESTIC_REPOSITORY, RESTIC_PASSWORD_FILE, RESTIC_CACHE_DIR  for restic
+#   DATABASE      Forgejo's database, dumped as the service's user (peer auth, pg_read_all_data)
+#   DUMP          where the dump is written before the backup, left there for the next run
+#   EXCLUDE_FILE  patterns restic leaves out
+#   KEEP_DAILY, KEEP_WEEKLY, KEEP_MONTHLY  snapshots kept by restic forget
+
+set -euo pipefail
+
+: "${RESTIC_REPOSITORY:?}" "${RESTIC_PASSWORD_FILE:?}" "${DATABASE:?}" "${DUMP:?}" "${EXCLUDE_FILE:?}"
+: "${KEEP_DAILY:?}" "${KEEP_WEEKLY:?}" "${KEEP_MONTHLY:?}"
+
+if [[ $# -eq 0 ]]; then
+  echo "Usage: $(basename "$0") <path>..." >&2
+  exit 1
+fi
+
+# Only stale locks, from a run that was killed: a live one makes the backup fail.
+restic unlock --quiet
+
+# Plain SQL, which restic deduplicates from one night to the next. The database first: a
+# repository pushed to after the dump is only ahead of it, which Forgejo copes with.
+pg_dump --dbname="$DATABASE" --file="$DUMP"
+
+# restic exits 3 when it couldn't read some files, which fails the service too.
+restic backup --quiet --exclude-file="$EXCLUDE_FILE" "$DUMP" "$@"
+restic forget --quiet --prune \
+  --keep-daily "$KEEP_DAILY" --keep-weekly "$KEEP_WEEKLY" --keep-monthly "$KEEP_MONTHLY"
+restic check --quiet
+
+echo "Backed up $DATABASE and $*"
