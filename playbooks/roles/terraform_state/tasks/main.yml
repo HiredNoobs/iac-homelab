@@ -129,13 +129,13 @@
   no_log: "{{ not (show_secrets | bool) }}"
 
 # Mounted when first used, so a NAS that's down doesn't hold up the boot; the export then fails
-# (HostSystemdServiceCrashed in iac-k8s).
+# (HostSystemdServiceCrashed in iac-k8s). Owned by postgres, the export's user.
 - name: Mount the NAS share
   mount:
     path: "{{ terraform_state_mount }}"
     src: "{{ terraform_state_nas_share }}"
     fstype: cifs
-    opts: "credentials=/etc/terraform-state/nas-credentials,vers=3.1.1,file_mode=0600,dir_mode=0700,_netdev,nofail,x-systemd.automount"
+    opts: "credentials=/etc/terraform-state/nas-credentials,vers=3.1.1,uid=postgres,gid=postgres,file_mode=0600,dir_mode=0700,_netdev,nofail,x-systemd.automount"
     state: mounted
 
 # build.sh puts the gitops root's copies here. No mode: the mount options set it.
@@ -164,6 +164,8 @@
 
       [Service]
       Type=oneshot
+      User=postgres
+      Group=postgres
       Environment=DATABASE={{ terraform_state_database }}
       Environment=DEST={{ terraform_state_mount }}
       Environment=KEEP_COPIES={{ terraform_state_keep_copies }}
