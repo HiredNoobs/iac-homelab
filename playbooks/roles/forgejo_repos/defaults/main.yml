@@ -9,10 +9,21 @@ forgejo_repos_github_token_file: "{{ bootstrap_secrets_dir }}/github-mirror-toke
 
 forgejo_repos_owner: "{{ admin_user | default('hirednoobs') }}"
 
-# Forgejo is the upstream, every push is mirrored to the GitHub repo (owner/name).
+# Forgejo is the upstream, every push is mirrored to the GitHub repo (owner/name). protection: the
+# default branch's settings (the API's branch protection fields) on top of no force pushes or
+# deletion, kept as set here.
 forgejo_repos:
   - name: iac-homelab
     github: HiredNoobs/iac-homelab
+    # Changes go through pull requests: the clusters workflow plans them, merging applies them.
+    # Lint must pass first (a status on the branch's head commit, from its push), and only the
+    # owner merges (Vault only gives the apply its credentials for the owner's merges anyway).
+    protection:
+      enable_push: false
+      enable_status_check: true
+      status_check_contexts: ["Lint / lint (push)"]
+      enable_merge_whitelist: true
+      merge_whitelist_usernames: ["{{ forgejo_repos_owner }}"]
   - name: iac-k8s
     github: HiredNoobs/iac-k8s
 

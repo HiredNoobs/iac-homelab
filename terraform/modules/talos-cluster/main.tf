@@ -309,8 +309,13 @@ data "talos_client_configuration" "this" {
   nodes                = [for name in sort(keys(var.nodes)) : local.ips[name]]
 }
 
-resource "local_sensitive_file" "talosconfig" {
-  content         = data.talos_client_configuration.this.talos_config
-  filename        = var.talosconfig_path
-  file_permission = "0600"
+# The talosconfig was a file written by Terraform. It's an output now (build.sh writes the file),
+# so the state doesn't depend on the machine that applied it (CI and workstations). Forgotten, not
+# deleted: the file stays where it is.
+removed {
+  from = local_sensitive_file.talosconfig
+
+  lifecycle {
+    destroy = false
+  }
 }

@@ -40,16 +40,16 @@
   ],
   "packageRules": [
     {
-      "description": "The Terraform CLI: required_version in every root and lint.yml",
+      "description": "The Terraform CLI: required_version in every root, lint.yml and clusters.yml",
       "matchPackageNames": ["hashicorp/terraform"],
       "groupName": "terraform",
-      "prBodyNotes": ["Apply with the new version from the workstation and mgmt (and CI's, once it applies)."]
+      "prBodyNotes": ["Install the new version on the workstation too. Merging this runs the clusters workflow with it (a no-op apply)."]
     },
     {
-      "description": "Talos and Kubernetes: one minor version at a time, applied by hand",
+      "description": "Talos and Kubernetes: one minor version at a time, each applied when merged",
       "matchPackageNames": ["siderolabs/talos", "kubernetes/kubernetes"],
       "separateMultipleMinor": true,
-      "prBodyNotes": ["Upgrades the cluster when applied (`./build.sh clusters`). Bump talosctl/kubectl in tools-bin's `context-setup` too, and for Kubernetes `KUBERNETES_VERSION` (and the schemas commit) in iac-k8s's lint.yml. Check the Talos support matrix first."]
+      "prBodyNotes": ["Upgrades the cluster when merged (the clusters workflow applies it, one node at a time): read the plan on this PR first. Bump talosctl/kubectl in tools-bin's `context-setup` too, and for Kubernetes `KUBERNETES_VERSION` (and the schemas commit) in iac-k8s's lint.yml. Check the Talos support matrix first."]
     },
     {
       "matchPackageNames": ["forgejo/forgejo"],

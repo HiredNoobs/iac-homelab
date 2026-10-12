@@ -19,6 +19,7 @@ cd "$(git rev-parse --show-toplevel)"
 # in it ({v} too). An empty name means the URL is the checksum alone.
 PINS=(
   ".forgejo/workflows/lint.yml TERRAFORM_VERSION TERRAFORM_SHA256 https://releases.hashicorp.com/terraform/{v}/terraform_{v}_SHA256SUMS terraform_{v}_linux_amd64.zip"
+  ".forgejo/workflows/clusters.yml TERRAFORM_VERSION TERRAFORM_SHA256 https://releases.hashicorp.com/terraform/{v}/terraform_{v}_SHA256SUMS terraform_{v}_linux_amd64.zip"
   "playbooks/roles/vault/defaults/main.yml vault_version vault_sha256 https://releases.hashicorp.com/vault/{v}/vault_{v}_SHA256SUMS vault_{v}_linux_amd64.zip"
   "playbooks/roles/monitoring/defaults/main.yml node_exporter_version node_exporter_sha256 https://github.com/prometheus/node_exporter/releases/download/v{v}/sha256sums.txt node_exporter-{v}.linux-amd64.tar.gz"
   "playbooks/roles/forgejo/defaults/main.yml forgejo_version forgejo_sha256 https://codeberg.org/forgejo/forgejo/releases/download/v{v}/forgejo-{v}-linux-amd64.sha256"

@@ -72,28 +72,20 @@ module "cluster" {
   installer_image    = data.talos_image_factory_urls.this.urls.installer
   talos_contract     = var.talos_contract
   kubernetes_version = var.kubernetes_version
-
-  talosconfig_path = pathexpand("${var.talosconfig_dir}/${each.key}.yaml")
 }
 
 # -----------------------------------------------------
 # Ansible
 # -----------------------------------------------------
 
-# No hosts, the management VMs are in the gitops root. Ansible merges every file in
-# playbooks/inventory/, so mgmt.yml copies these talosconfigs to them (build.sh clusters runs it
-# after an apply).
-resource "local_file" "ansible_inventory" {
-  filename        = "${path.module}/../../playbooks/inventory/clusters.generated.yml"
-  file_permission = "0644"
+# No hosts, the management VMs are in the gitops root. build.sh writes
+# playbooks/inventory/clusters.generated.yml from the outputs (ansible_vars, talosconfigs), so
+# mgmt.yml can copy the talosconfigs to them. It was a file written by Terraform: forgotten, not
+# deleted, like the talosconfigs (modules/talos-cluster).
+removed {
+  from = local_file.ansible_inventory
 
-  content = yamlencode({
-    all = {
-      vars = {
-        domain       = var.domain
-        nameservers  = var.nameservers
-        talosconfigs = { for context, cluster in module.cluster : context => cluster.talosconfig_path }
-      }
-    }
-  })
+  lifecycle {
+    destroy = false
+  }
 }

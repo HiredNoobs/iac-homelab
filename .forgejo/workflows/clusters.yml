@@ -1,0 +1,101 @@
+# Terraform for the clusters root: a pull request is planned (read the plan in the job's log),
+# merging it into master applies it. Jobs run on the general runner; the credentials come from
+# Vault for each run (clusters.sh), and only for the runs Vault's roles accept (terraform/vault):
+#
+# - apply: a push to master (a merge: only the owner can merge) with master's copy of this file.
+# - plan: pull_request_target, so this file and clusters.sh are always master's, never a branch's,
+#   and only when the owner started the run: opening or updating their own pull request, or
+#   adding a label to someone else's (Renovate's) once they've read it. The plan runs the pull
+#   request's Terraform code with the credentials, which is why that read matters.
+#
+# A workflow on any other branch, whoever pushed it, gets nothing from Vault. The gitops and vault
+# roots are never applied here. build.sh clusters still works from a workstation (and runs
+# mgmt.yml, which CI doesn't: the talosconfigs only change with a new cluster or new client
+# certificates).
+name: Clusters
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, labeled]
+    paths:
+      - terraform/clusters/**
+      - terraform/modules/talos-cluster/**
+      - .forgejo/workflows/clusters.yml
+      - .forgejo/scripts/clusters.sh
+  push:
+    branches:
+      - master
+    paths:
+      - terraform/clusters/**
+      - terraform/modules/talos-cluster/**
+      - .forgejo/workflows/clusters.yml
+      - .forgejo/scripts/clusters.sh
+
+env:
+  # The same version as required_version in each Terraform root (and lint.yml).
+  # renovate: datasource=github-releases depName=hashicorp/terraform extractVersion=^v(?<version>.+)$
+  TERRAFORM_VERSION: "1.15.9"
+  TERRAFORM_SHA256: "76edd0b22d2f27d3d2e097cd793209646f719cf60f02ff3af626b07361137da1"
+  VAULT_ADDR: https://vault.hirednoobs.com
+
+jobs:
+  plan:
+    # Someone else's runs would only be refused by Vault, this skips them instead.
+    if: github.event_name == 'pull_request_target' && github.actor == github.repository_owner
+    runs-on: docker
+    enable-openid-connect: true
+    steps:
+      - name: Install tools
+        run: |
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends jq unzip
+
+      # Not actions/checkout (see lint.yml). The job token goes in a header, so it isn't saved.
+      # master as the pull request's base had it: the script that handles the credentials.
+      - name: Checkout master
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          git init -q trusted
+          git -C trusted -c http.extraHeader="Authorization: Basic $auth" \
+            fetch -q --depth 1 "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git -C trusted checkout -q FETCH_HEAD
+
+      # The commit the run was started for, not whatever the branch points at by now.
+      - name: Checkout the pull request
+        env:
+          TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          git init -q pr
+          git -C pr -c http.extraHeader="Authorization: Basic $auth" \
+            fetch -q --depth 1 "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" "$HEAD_SHA"
+          git -C pr checkout -q FETCH_HEAD
+
+      - name: Plan
+        run: bash trusted/.forgejo/scripts/clusters.sh plan pr
+
+  apply:
+    if: github.event_name == 'push'
+    runs-on: docker
+    enable-openid-connect: true
+    steps:
+      - name: Install tools
+        run: |
+          apt-get update -q
+          apt-get install -y -q --no-install-recommends jq unzip
+
+      - name: Checkout
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          git init -q trusted
+          git -C trusted -c http.extraHeader="Authorization: Basic $auth" \
+            fetch -q --depth 1 "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git -C trusted checkout -q FETCH_HEAD
+
+      - name: Apply
+        run: bash trusted/.forgejo/scripts/clusters.sh apply trusted

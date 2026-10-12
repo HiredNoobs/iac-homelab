@@ -96,6 +96,79 @@ resource "vault_kubernetes_auth_backend_role" "external_secrets" {
 }
 
 # -----------------------------------------------------
+# CI (Forgejo Actions)
+# -----------------------------------------------------
+
+# Jobs log in with the ID token Forgejo signs for them (enable-openid-connect), whose claims say
+# which repo, workflow file, branch, event and user the run is for. Forgejo gives repo secrets to
+# a workflow on any pushed branch, so CI credentials live here instead, released only to runs
+# the claims vouch for. Vault checks the tokens against Forgejo's keys
+# (<issuer>/.well-known/openid-configuration).
+resource "vault_jwt_auth_backend" "forgejo" {
+  path               = "forgejo"
+  type               = "jwt"
+  description        = "Forgejo Actions ID tokens"
+  oidc_discovery_url = "${var.forgejo_url}/api/actions"
+  bound_issuer       = "${var.forgejo_url}/api/actions"
+}
+
+locals {
+  iac_homelab = "${var.forgejo_owner}/iac-homelab"
+
+  # The clusters workflow as master has it: pushes to master and pull_request_target runs both
+  # read the workflow from there, a branch's own copy is never it.
+  clusters_workflow = {
+    repository   = local.iac_homelab
+    workflow_ref = "${local.iac_homelab}/.forgejo/workflows/clusters.yml@refs/heads/master"
+    ref          = "refs/heads/master"
+    actor        = var.forgejo_owner
+  }
+}
+
+# labv2/ci/clusters: PM_PASSWORD (the clusters' Proxmox root@pam) and PG_PASSWORD (the
+# terraform_ci role's, the same as iac-homelab's secrets/postgres-password-ci). Outside
+# labv2/<environment>/, so External Secrets Operator can't read it.
+resource "vault_policy" "ci_clusters" {
+  name   = "ci-clusters"
+  policy = <<-EOT
+    path "${vault_mount.labv2.path}/data/ci/clusters" {
+      capabilities = ["read"]
+    }
+  EOT
+}
+
+# Applying: a merge into master (only the owner can merge, iac-homelab's branch protection), so
+# master's own code.
+resource "vault_jwt_auth_backend_role" "clusters_apply" {
+  backend           = vault_jwt_auth_backend.forgejo.path
+  role_name         = "clusters-apply"
+  role_type         = "jwt"
+  user_claim        = "actor"
+  bound_audiences   = [var.vault_address]
+  bound_claims_type = "string"
+  bound_claims      = merge(local.clusters_workflow, { event_name = "push" })
+  token_policies    = [vault_policy.ci_clusters.name]
+  token_ttl         = 600
+  token_max_ttl     = 600
+}
+
+# Planning a pull request: master's workflow (pull_request_target) started by the owner, by
+# opening or updating their own pull request or labelling someone else's (Renovate's) after
+# reading it. A commit pushed by anyone else starts a run Vault refuses.
+resource "vault_jwt_auth_backend_role" "clusters_plan" {
+  backend           = vault_jwt_auth_backend.forgejo.path
+  role_name         = "clusters-plan"
+  role_type         = "jwt"
+  user_claim        = "actor"
+  bound_audiences   = [var.vault_address]
+  bound_claims_type = "string"
+  bound_claims      = merge(local.clusters_workflow, { event_name = "pull_request_target" })
+  token_policies    = [vault_policy.ci_clusters.name]
+  token_ttl         = 600
+  token_max_ttl     = 600
+}
+
+# -----------------------------------------------------
 # Audit
 # -----------------------------------------------------
 

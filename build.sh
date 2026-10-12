@@ -81,8 +81,27 @@ function run_terraform {
   fi
 
   rm -f tfplan
+  [[ "$ROOT" == "clusters" ]] && write_cluster_files
   [[ "$ROOT" == "gitops" ]] && copy_gitops_state
   cd "$HERE" || exit 1
+}
+
+# The talosconfigs (~/.talos/contexts/<context>.yaml, where tools-bin's context-setup reads them)
+# and the clusters' part of the Ansible inventory, from the outputs: CI applies the same state, so
+# Terraform writes no files itself.
+function write_cluster_files {
+  local talosconfigs context dir="$HOME/.talos/contexts"
+
+  talosconfigs=$(terraform output -json talosconfigs) || exit 1
+  mkdir -p "$dir" && chmod 700 "$dir"
+  for context in $(jq -r 'keys[]' <<< "$talosconfigs"); do
+    (umask 077 && jq -j --arg context "$context" '.[$context]' <<< "$talosconfigs" > "$dir/$context.yaml") || exit 1
+  done
+
+  # JSON is YAML too.
+  terraform output -json ansible_vars | jq --arg dir "$dir" --argjson talosconfigs "$talosconfigs" \
+    '{all: {vars: (. + {talosconfigs: ($talosconfigs | with_entries(.value = "\($dir)/\(.key).yaml"))})}}' \
+    > "$HERE/playbooks/inventory/clusters.generated.yml" || exit 1
 }
 
 # The gitops root's state to the NAS, named like the git VM's copies of the others. A failure

@@ -68,7 +68,3 @@ variable "talos_contract" {
 variable "kubernetes_version" {
   type = string
 }
-
-variable "talosconfig_path" {
-  type = string
-}

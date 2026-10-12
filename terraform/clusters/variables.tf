@@ -99,12 +99,6 @@ variable "talos_extensions" {
   default = ["qemu-guest-agent", "iscsi-tools", "util-linux-tools"]
 }
 
-# Where each cluster's talosconfig is written, as <context>.yaml (used by tools-bin's context-setup).
-variable "talosconfig_dir" {
-  type    = string
-  default = "~/.talos/contexts"
-}
-
 # -----------------------------------------------------
 # Clusters
 # -----------------------------------------------------

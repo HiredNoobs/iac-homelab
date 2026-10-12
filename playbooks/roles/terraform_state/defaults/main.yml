@@ -8,11 +8,15 @@ terraform_state_owner: terraform_state
 
 # Who may connect, over TLS with a password, each from its own address range. Passwords are
 # openssl rand -hex 32 (they go in PG_CONN_STR, so no characters that need escaping in a URL).
-# terraform is build.sh's, from the LAN.
+# terraform is build.sh's, from the LAN; terraform_ci the clusters workflow's, from the runner VM
+# (its jobs get the password from Vault, labv2/ci/clusters PG_PASSWORD: change both together).
 terraform_state_clients:
   - name: terraform
     address: 192.168.50.0/24
     password_file: "{{ bootstrap_secrets_dir }}/postgres-password"
+  - name: terraform_ci
+    address: "{{ hostvars[groups['runner'][0]]['ansible_host'] }}/32"
+    password_file: "{{ bootstrap_secrets_dir }}/postgres-password-ci"
 
 # Clients connect to this name, Postgres serves the certbot certificate (forgejo.yml) for it.
 terraform_state_domain: "git.{{ domain }}"

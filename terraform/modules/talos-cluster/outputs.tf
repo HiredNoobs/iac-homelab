@@ -2,6 +2,7 @@ output "endpoint" {
   value = local.endpoint
 }
 
-output "talosconfig_path" {
-  value = local_sensitive_file.talosconfig.filename
+output "talosconfig" {
+  value     = data.talos_client_configuration.this.talos_config
+  sensitive = true
 }

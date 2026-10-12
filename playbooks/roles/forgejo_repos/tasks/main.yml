@@ -97,8 +97,8 @@
   changed_when: true
   no_log: "{{ not (show_secrets | bool) }}"
 
-# No force pushes or deletion. Direct pushes are still allowed, required checks come with CI
-# applying Terraform.
+# No force pushes or deletion, plus each repo's protection (forgejo_repos). Direct pushes are allowed
+# unless that says otherwise.
 - name: Check branch protection
   uri:
     url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.name }}/branch_protections/{{ item.branch | default('master') }}"
@@ -116,13 +116,30 @@
     method: POST
     headers: "{{ forgejo_repos_headers }}"
     body_format: json
-    body:
-      rule_name: "{{ item.item.branch | default('master') }}"
-      enable_push: true
+    body: "{{ {'rule_name': item.item.branch | default('master'), 'enable_push': true} | combine(item.item.protection | default({})) }}"
     status_code: 201
   loop: "{{ forgejo_repos_protections.results }}"
   loop_control:
     label: "{{ item.item.name }}"
   when: item.status == 404
+  changed_when: true
+  no_log: "{{ not (show_secrets | bool) }}"
+
+# An existing rule only gets the settings in protection, when they differ.
+- name: Update branch protection
+  uri:
+    url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.item.name }}/branch_protections/{{ item.item.branch | default('master') }}"
+    method: PATCH
+    headers: "{{ forgejo_repos_headers }}"
+    body_format: json
+    body: "{{ item.item.protection }}"
+    status_code: 200
+  loop: "{{ forgejo_repos_protections.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.status == 200
+    - item.item.protection is defined
+    - (item.json | combine(item.item.protection)) != item.json
   changed_when: true
   no_log: "{{ not (show_secrets | bool) }}"
