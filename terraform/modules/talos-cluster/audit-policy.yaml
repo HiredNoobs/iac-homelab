@@ -74,7 +74,7 @@ rules:
       - system:serviceaccounts:rabbitmq-system
       - system:serviceaccounts:reloader
       - system:serviceaccounts:monitoring
-      - system:serviceaccounts:vlagent
+      - system:serviceaccounts:vector
   # Never a Secret's or ConfigMap's contents, and token requests and reviews carry tokens.
   - level: Metadata
     resources:
