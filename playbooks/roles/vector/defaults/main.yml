@@ -1,0 +1,10 @@
+# Bump both together, the checksum is the amd64 .deb's from the release's
+# vector-<version>-SHA256SUMS. Keep it the version iac-k8s' Vector runs
+# (apps/base/vector/daemonset.yaml).
+# renovate: datasource=github-releases depName=vectordotdev/vector extractVersion=^v(?<version>.+)$
+vector_version: "0.59.0"
+vector_sha256: "1dd9f52bda25d2364ab04d496a3b7edbc775b1a3cd02d9985eb81f3c174a245f"
+
+# The cluster's Vector, through the Gateway (iac-k8s apps/base/vector/journald-route.yaml, which
+# only lets the prx-999 VMs in).
+vector_journald_url: "https://journald.{{ domain }}/journald"

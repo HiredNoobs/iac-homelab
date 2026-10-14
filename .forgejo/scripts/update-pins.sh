@@ -24,6 +24,7 @@ PINS=(
   "playbooks/roles/monitoring/defaults/main.yml node_exporter_version node_exporter_sha256 https://github.com/prometheus/node_exporter/releases/download/v{v}/sha256sums.txt node_exporter-{v}.linux-amd64.tar.gz"
   "playbooks/roles/forgejo/defaults/main.yml forgejo_version forgejo_sha256 https://codeberg.org/forgejo/forgejo/releases/download/v{v}/forgejo-{v}-linux-amd64.sha256"
   "playbooks/roles/forgejo_runner/defaults/main.yml forgejo_runner_version forgejo_runner_sha256 https://code.forgejo.org/forgejo/runner/releases/download/v{v}/forgejo-runner-{v}-linux-amd64.sha256"
+  "playbooks/roles/vector/defaults/main.yml vector_version vector_sha256 https://github.com/vectordotdev/vector/releases/download/v{v}/vector-{v}-SHA256SUMS vector_{v}-1_amd64.deb"
 )
 
 # Galaxy publishes the collection's checksum in its version's metadata.
