@@ -1,8 +1,7 @@
 # Sends the VM's journal (sshd, sudo, Vault's audit log, Forgejo, ...) to the cluster's Vector,
 # for the security detections in iac-k8s (rules/journald.yml). This Vector only reads and
 # forwards (templates/vector.yaml.j2): the mapping to ECS fields lives in the cluster. It keeps
-# its place in the journal and queues on disk while the cluster is unreachable. It replaces
-# systemd-journal-upload.
+# its place in the journal and queues on disk while the cluster is unreachable.
 - name: Download Vector
   get_url:
     url: "https://github.com/vectordotdev/vector/releases/download/v{{ vector_version }}/vector_{{ vector_version }}-1_amd64.deb"
@@ -69,22 +68,3 @@
     enabled: yes
     state: started
     daemon_reload: yes
-
-# Vector starts from now, so it runs before systemd-journal-upload goes: a few entries may be
-# sent twice, none are missed.
-- name: Flush the handlers (Vector running before systemd-journal-upload goes)
-  meta: flush_handlers
-
-- name: Remove systemd-journal-upload, which Vector replaces
-  apt:
-    name: systemd-journal-remote
-    state: absent
-    purge: yes
-
-- name: Remove systemd-journal-upload's config and state
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /etc/systemd/journal-upload.conf.d
-    - /var/lib/systemd/journal-upload
