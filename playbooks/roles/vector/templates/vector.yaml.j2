@@ -6,10 +6,13 @@ data_dir: /var/lib/vector
 sources:
   journal:
     type: journald
-    # The first start reads from then on; afterwards from its checkpoint (in data_dir), across
-    # reboots too.
+    # The first start reads from then on; afterwards from its checkpoint (in data_dir). Only the
+    # current boot: on systemd 250 to 257 (Debian 13's is 257) journalctl --follow can't read
+    # past it (vectordotdev/vector#18068), so after a reboot whatever the last boot logged after
+    # the last checkpoint (its shutdown, mostly) isn't sent. From systemd 258,
+    # current_boot_only: false reads across boots.
     since_now: true
-    current_boot_only: false
+    current_boot_only: true
 
 transforms:
   # When the entry was logged, as ECS's @timestamp (the cluster's listener stamps timestamp with
