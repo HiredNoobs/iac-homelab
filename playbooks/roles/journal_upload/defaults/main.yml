@@ -1,5 +1,0 @@
-# VictoriaLogs' journald endpoint through the cluster's Gateway (iac-k8s
-# apps/base/monitoring/victorialogs/journald-route.yaml, which only lets the prx-999 VMs in).
-# With the port: without one systemd-journal-upload appends :19532 to the whole URL, path
-# included. It adds /upload itself.
-journal_upload_url: "https://journald.{{ domain }}:443/insert/journald"

@@ -1,0 +1,40 @@
+# Managed by Ansible (roles/vector). Reads this VM's journal and sends each entry as it is to the
+# cluster's Vector, which maps it to ECS fields (iac-k8s apps/base/vector/vector.yaml). Nothing is
+# parsed here.
+data_dir: /var/lib/vector
+
+sources:
+  journal:
+    type: journald
+    # The first start reads from then on; afterwards from its checkpoint (in data_dir), across
+    # reboots too.
+    since_now: true
+    current_boot_only: false
+
+transforms:
+  # When the entry was logged, as ECS's @timestamp (the cluster's listener stamps timestamp with
+  # when it arrived), and when this Vector read it (event.created).
+  read:
+    type: remap
+    inputs: [journal]
+    source: |
+      ."@timestamp" = .timestamp
+      ."event.created" = now()
+
+sinks:
+  cluster:
+    type: http
+    inputs: [read]
+    uri: "{{ vector_journald_url }}"
+    method: post
+    compression: gzip
+    encoding:
+      codec: json
+    framing:
+      method: newline_delimited
+    # The Gateway's certificate is Let's Encrypt's, checked against the system's CAs.
+    # On disk while the cluster is unreachable (256 MiB is Vector's minimum), then sent in order.
+    buffer:
+      type: disk
+      max_size: 268435488
+      when_full: block
