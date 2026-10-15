@@ -15,6 +15,10 @@ terraform {
 locals {
   endpoint = "https://${var.vip}:6443"
 
+  # iac-k8s' talos-logs Service (apps/base/vector/service.yaml): its fixed cluster IP, in the
+  # part of the Service range Kubernetes keeps for fixed addresses. Change both together.
+  talos_logs_endpoint = "tcp://10.96.0.50:6050/"
+
   ips = { for name, node in var.nodes : name => split("/", node.ip)[0] }
 
   # Everything else comes from the name, e.g. prx-002-srv-prod-core-worker-001
@@ -210,6 +214,25 @@ data "talos_machine_configuration" "node" {
         selector = {
           match = "link.driver == \"virtio_net\""
         }
+      }),
+      # Talos' own logs (its services' and the kernel's) to the Vector on the same node, through
+      # iac-k8s' talos-logs Service (apps/base/vector/service.yaml), into VictoriaLogs. Until
+      # that exists (a rebuild, before Flux), Talos keeps retrying.
+      yamlencode({
+        machine = {
+          logging = {
+            destinations = [{
+              endpoint = local.talos_logs_endpoint
+              format   = "json_lines"
+            }]
+          }
+        }
+      }),
+      yamlencode({
+        apiVersion = "v1alpha1"
+        kind       = "KmsgLogConfig"
+        name       = "vector"
+        url        = local.talos_logs_endpoint
       }),
     ],
     local.roles[each.key] == "controlplane" ? [
