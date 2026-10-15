@@ -215,9 +215,10 @@ data "talos_machine_configuration" "node" {
           match = "link.driver == \"virtio_net\""
         }
       }),
-      # Talos' own logs (its services' and the kernel's) to the Vector on the same node, through
-      # iac-k8s' talos-logs Service (apps/base/vector/service.yaml), into VictoriaLogs. Until
-      # that exists (a rebuild, before Flux), Talos keeps retrying.
+      # Talos' own logs (its services' and the kernel's, as service kernel) to the Vector on the
+      # same node, through iac-k8s' talos-logs Service (apps/base/vector/service.yaml), into
+      # VictoriaLogs. Until that exists (a rebuild, before Flux), Talos keeps retrying. No
+      # KmsgLogConfig: it delivered only a fraction of the kernel's lines that these carry.
       yamlencode({
         machine = {
           logging = {
@@ -227,12 +228,6 @@ data "talos_machine_configuration" "node" {
             }]
           }
         }
-      }),
-      yamlencode({
-        apiVersion = "v1alpha1"
-        kind       = "KmsgLogConfig"
-        name       = "vector"
-        url        = local.talos_logs_endpoint
       }),
     ],
     local.roles[each.key] == "controlplane" ? [
