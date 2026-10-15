@@ -24,6 +24,10 @@ resource "talos_image_factory_schematic" "this" {
       systemExtensions = {
         officialExtensions = data.talos_image_factory_extensions_versions.this.extensions_info[*].name
       }
+      # No dashboard on the VMs' consoles: it polls machined every few seconds, a log line per
+      # call. `talosctl dashboard` (from mgmt) is unaffected. The console shows Talos' and the
+      # kernel's messages instead.
+      extraKernelArgs = ["talos.dashboard.disabled=1"]
     }
   })
 }
