@@ -103,6 +103,18 @@ resource "proxmox_metrics_server" "vmagent" {
 }
 
 # -----------------------------------------------------
+# Proxmox hosts
+# -----------------------------------------------------
+
+# Each prx-00x host's APT repositories: no-subscription, not enterprise.
+module "proxmox_apt" {
+  source   = "../modules/proxmox-apt"
+  for_each = toset(local.proxmox_nodes)
+
+  node_name = each.key
+}
+
+# -----------------------------------------------------
 # Ansible
 # -----------------------------------------------------
 
