@@ -8,8 +8,7 @@ movein_tools_bin: "{{ 'mgmt' in group_names }}"
 # same branch. A branch rather than a commit, so the VMs follow tools-bin and it isn't left on a
 # detached HEAD.
 tools_bin_repo: https://github.com/HiredNoobs/tools-bin.git
-# TODO: Switch back to master once tools-bin's k8s-deployment branch is merged.
-tools_bin_version: k8s-deployment
+tools_bin_version: master
 
 # tools-bin `setup` commands run as movein_username.
 tools_bin_setup: [bash, vim, tmux]
