@@ -69,6 +69,17 @@ resource "proxmox_metrics_server" "vmagent" {
 }
 
 # -----------------------------------------------------
+# Proxmox host
+# -----------------------------------------------------
+
+# prx-999's APT repositories: no-subscription, not enterprise.
+module "proxmox_apt" {
+  source = "../modules/proxmox-apt"
+
+  node_name = var.proxmox_node
+}
+
+# -----------------------------------------------------
 # Ansible
 # -----------------------------------------------------
 
