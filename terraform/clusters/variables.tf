@@ -160,3 +160,11 @@ variable "clusters" {
     error_message = "VMIDs must be unique across all clusters."
   }
 }
+
+# Proxmox checks that a metric server answers when it's added or changed, unless it's disabled.
+# vmagent isn't up on a fresh build: build with TF_VAR_metrics_server_enabled=false, then again
+# without it once Flux has deployed vmagent.
+variable "metrics_server_enabled" {
+  type    = bool
+  default = true
+}
