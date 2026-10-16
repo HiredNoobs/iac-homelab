@@ -79,6 +79,29 @@ module "cluster" {
 }
 
 # -----------------------------------------------------
+# Metrics
+# -----------------------------------------------------
+
+# Every prx-00x host's own and its guests' and storages' stats, pushed by pvestatd every 10
+# seconds as InfluxDB lines to the cluster's vmagent (iac-k8s apps/base/monitoring/vmagent,
+# metrics.hirednoobs.com only lets the hosts' addresses through). One setting for the whole
+# Proxmox cluster (/etc/pve/status.cfg), the same as prx-999's (the gitops root): no token, org
+# and bucket only because the v2 API's URL needs them, the /influx prefix is where vmagent has
+# both the writes and the health check Proxmox makes when the server is added or changed. While
+# the Kubernetes cluster is down the stats are lost.
+resource "proxmox_metrics_server" "vmagent" {
+  name   = "vmagent"
+  type   = "influxdb"
+  server = "metrics.${var.domain}"
+  port   = 443
+
+  influx_db_proto        = "https"
+  influx_api_path_prefix = "/influx"
+  influx_organization    = "proxmox"
+  influx_bucket          = "proxmox"
+}
+
+# -----------------------------------------------------
 # Ansible
 # -----------------------------------------------------
 
