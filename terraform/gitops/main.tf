@@ -46,6 +46,25 @@ module "server" {
 }
 
 # -----------------------------------------------------
+# Metrics
+# -----------------------------------------------------
+
+# prx-999's own and its guests' and storages' stats, pushed by pvestatd every 10 seconds as
+# InfluxDB lines to the cluster's vmagent (iac-k8s apps/base/monitoring/vmagent, metrics.hirednoobs.com
+# only lets this host's address through). vmagent takes them without a token; org and bucket are
+# only there because the v2 API's URL needs them. While the cluster is down the stats are lost.
+resource "proxmox_metrics_server" "vmagent" {
+  name   = "vmagent"
+  type   = "influxdb"
+  server = "metrics.${var.domain}"
+  port   = 443
+
+  influx_db_proto     = "https"
+  influx_organization = "proxmox"
+  influx_bucket       = "proxmox"
+}
+
+# -----------------------------------------------------
 # Ansible
 # -----------------------------------------------------
 
