@@ -90,10 +90,11 @@ module "cluster" {
 # both the writes and the health check Proxmox makes when the server is added or changed. While
 # the Kubernetes cluster is down the stats are lost.
 resource "proxmox_metrics_server" "vmagent" {
-  name   = "vmagent"
-  type   = "influxdb"
-  server = "metrics.${var.domain}"
-  port   = 443
+  name    = "vmagent"
+  type    = "influxdb"
+  server  = "metrics.${var.domain}"
+  port    = 443
+  disable = !var.metrics_server_enabled
 
   influx_db_proto        = "https"
   influx_api_path_prefix = "/influx"
