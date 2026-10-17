@@ -1,6 +1,6 @@
 terraform {
   # Exact, upgrades are deliberate. Write-only arguments (kubeconfig_wo) need 1.11+.
-  required_version = "1.15.9"
+  required_version = "1.16.6"
 
   # In Postgres on the git VM (PG_CONN_STR, set by build.sh). Without it, from a copy on the NAS:
   # README, Terraform state.
