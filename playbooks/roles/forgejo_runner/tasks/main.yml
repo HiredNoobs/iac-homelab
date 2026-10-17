@@ -12,6 +12,37 @@
     update_cache: yes
     cache_valid_time: 3600
 
+# Every container goes in ci-jobs.slice (Docker's cgroup-parent), capped as a whole: a job
+# that runs away is OOM-killed inside it instead of the VM running out of memory and hanging.
+- name: Create the job containers' slice
+  copy:
+    dest: /etc/systemd/system/ci-jobs.slice
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Forgejo runner job containers
+      Before=slices.target
+
+      [Slice]
+      MemoryAccounting=yes
+      MemoryMax={{ forgejo_runner_jobs_memory_max }}
+      MemorySwapMax=0
+  notify: reload systemd
+
+- name: Ensure Docker config directory exists
+  file:
+    path: /etc/docker
+    state: directory
+    mode: '0755'
+
+# Restarting Docker stops the jobs running at the time.
+- name: Put containers in the job slice
+  copy:
+    dest: /etc/docker/daemon.json
+    mode: '0644'
+    content: "{{ {'cgroup-parent': 'ci-jobs.slice'} | to_nice_json }}\n"
+  notify: restart docker
+
 - name: Enable Docker
   systemd:
     name: docker
