@@ -26,6 +26,11 @@ forgejo_repos:
       merge_whitelist_usernames: ["{{ forgejo_repos_owner }}"]
   - name: iac-k8s
     github: HiredNoobs/iac-k8s
+    # A pull request (Renovate's, a branch's) merges once lint passed on its head commit: merging
+    # is a deploy (Flux applies master). Direct pushes to master are still allowed.
+    protection:
+      enable_status_check: true
+      status_check_contexts: ["Lint / lint (push)"]
 
 # Repository settings (the API's edit repo fields) on every repo above, kept as set here.
 # Merging a pull request deletes its branch unless unticked.
