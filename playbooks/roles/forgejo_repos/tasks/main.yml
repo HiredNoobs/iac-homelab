@@ -48,6 +48,32 @@
   changed_when: true
   no_log: "{{ not (show_secrets | bool) }}"
 
+# Read again: a repo imported above wasn't there to check.
+- name: Read the repos' settings
+  uri:
+    url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.name }}"
+    headers: "{{ forgejo_repos_headers }}"
+  loop: "{{ forgejo_repos }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: forgejo_repos_current
+  no_log: "{{ not (show_secrets | bool) }}"
+
+- name: Update the repos' settings
+  uri:
+    url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.item.name }}"
+    method: PATCH
+    headers: "{{ forgejo_repos_headers }}"
+    body_format: json
+    body: "{{ forgejo_repos_settings }}"
+    status_code: 200
+  loop: "{{ forgejo_repos_current.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when: (item.json | combine(forgejo_repos_settings)) != item.json
+  changed_when: true
+  no_log: "{{ not (show_secrets | bool) }}"
+
 - name: List push mirrors
   uri:
     url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.name }}/push_mirrors"
