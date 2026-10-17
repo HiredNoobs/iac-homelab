@@ -27,5 +27,10 @@ forgejo_repos:
   - name: iac-k8s
     github: HiredNoobs/iac-k8s
 
+# Repository settings (the API's edit repo fields) on every repo above, kept as set here.
+# Merging a pull request deletes its branch unless unticked.
+forgejo_repos_settings:
+  default_delete_branch_after_merge: true
+
 # Re-creates the push mirrors with the current GitHub token, after rotating it.
 forgejo_repos_update_mirror_credentials: false
