@@ -14,8 +14,12 @@ forgejo_runner_instance: "https://git.{{ domain }}"
 # Must match a forgejo-runner-<host> secret registered by the forgejo role.
 forgejo_runner_secret_file: "{{ bootstrap_secrets_dir }}/forgejo-runner-{{ inventory_hostname }}"
 
-# Jobs run at once.
-forgejo_runner_capacity: 2
+# Jobs run at once. One: jobs queue, and a single job gets all of the memory below.
+forgejo_runner_capacity: 1
+
+# All job containers together (the ci-jobs slice): past this a job is OOM-killed and fails,
+# the rest of the VM (sshd, node_exporter, the journal upload, the runner) keeps the remainder.
+forgejo_runner_jobs_memory_max: 3G
 
 # runs-on: <label>. Images pinned by digest, Renovate bumps them.
 forgejo_runner_labels:
