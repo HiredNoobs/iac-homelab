@@ -1,7 +1,8 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Run by the renovate repo's workflow (the global config, and default.json for the shared settings). Every update is a PR, nothing automerges: applies are deliberate.",
+  "description": "Run by the renovate repo's workflow (the global config, and default.json for the shared settings). Every update is a PR, nothing automerges: applies are deliberate. PRs are rebased whenever master moves on, so a clusters plan always runs against current master.",
   "extends": ["local>hirednoobs/renovate"],
+  "rebaseWhen": "behind-base-branch",
   "pip-compile": {
     "managerFilePatterns": ["/^\\.forgejo/requirements-lint\\.txt$/"]
   },
