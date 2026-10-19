@@ -2,17 +2,39 @@
 # for the security detections in iac-k8s (rules/journald.yml). This Vector only reads and
 # forwards (templates/vector.yaml.j2): the mapping to ECS fields lives in the cluster. It keeps
 # its place in the journal and queues on disk while the cluster is unreachable.
-- name: Download Vector
-  get_url:
-    url: "https://github.com/vectordotdev/vector/releases/download/v{{ vector_version }}/vector_{{ vector_version }}-1_amd64.deb"
-    dest: "/var/cache/vector_{{ vector_version }}-1_amd64.deb"
-    checksum: "sha256:{{ vector_sha256 }}"
-    mode: '0644'
+- name: Get installed Vector version
+  command: dpkg-query --show --showformat=${Version} vector
+  register: vector_installed
+  changed_when: false
+  failed_when: false
 
-- name: Install Vector
-  apt:
-    deb: "/var/cache/vector_{{ vector_version }}-1_amd64.deb"
-  notify: restart vector
+# In a new private directory on disk (/tmp is a tmpfs), removed afterwards.
+- block:
+    - name: Create a download directory
+      tempfile:
+        state: directory
+        path: /var/tmp
+        prefix: vector-
+      register: vector_download
+
+    - name: Download Vector
+      get_url:
+        url: "https://github.com/vectordotdev/vector/releases/download/v{{ vector_version }}/vector_{{ vector_version }}-1_amd64.deb"
+        dest: "{{ vector_download.path }}/vector_{{ vector_version }}-1_amd64.deb"
+        checksum: "sha256:{{ vector_sha256 }}"
+        mode: '0644'
+
+    - name: Install Vector
+      apt:
+        deb: "{{ vector_download.path }}/vector_{{ vector_version }}-1_amd64.deb"
+      notify: restart vector
+  always:
+    - name: Remove the download directory
+      file:
+        path: "{{ vector_download.path }}"
+        state: absent
+      when: vector_download.path is defined
+  when: vector_installed.stdout != vector_version ~ "-1"
 
 # The package adds its user to adm (all of /var/log) as well as systemd-journal; the journal is
 # all it reads.
