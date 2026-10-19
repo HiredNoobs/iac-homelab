@@ -8,7 +8,7 @@ Terraform and Ansible for the homelab: the Talos Kubernetes clusters on the ``pr
 | ``terraform/gitops/`` | The ``prx-999`` Debian VMs. | All of them, on the ``prx-999`` VMs. |
 | ``terraform/vault/`` | Vault's config: secret engines, policies, auth (Kubernetes for ESO, Forgejo ID tokens for CI, an AppRole for the Vault backup). | None. |
 
-Each root has its own state (see [Terraform state](#terraform-state)) and its part of the Ansible inventory in ``playbooks/inventory/`` (the clusters root's is written by ``build.sh`` from its outputs). Nothing in the clusters root depends on ``prx-999``, so the clusters can always be rebuilt from a workstation. Changes to the clusters root go through pull requests: CI plans them and applies them when merged (see [CI](#ci)).
+Each root has its own state (see [Terraform state](docs/terraform-state.md)) and its part of the Ansible inventory in ``playbooks/inventory/`` (the clusters root's is written by ``build.sh`` from its outputs). Nothing in the clusters root depends on ``prx-999``, so the clusters can always be rebuilt from a workstation. Changes to the clusters root go through pull requests: CI plans them and applies them when merged (see [CI](docs/ci.md)).
 
 ## Usage
 
@@ -29,123 +29,8 @@ export TF_VAR_pm_password="<password for that root's Proxmox>"
 - ``--refresh-keys`` forgets the old SSH host keys, for rebuilt VMs.
 - Playbooks can be run on their own from ``playbooks/``. Tasks handling secrets hide their output, ``-e show_secrets=true`` shows it when debugging.
 - ``./build.sh gitops`` runs ``patch.yml``, which may reboot the Vault VM: unseal it afterwards.
+- Building from scratch: set ``TF_VAR_metrics_server_enabled=false`` for both roots (Proxmox won't add a metric server that doesn't answer), then build them again without it once Flux has deployed vmagent.
 - Applying by hand: ``terraform apply -parallelism=1`` from ``terraform/<root>/``, with ``PG_CONN_STR`` set for clusters and vault (as ``build.sh`` sets it).
-
-## CI
-
-``master`` only takes pull requests, merged by the owner (``forgejo-repos.yml``), and ``Lint / lint (push)`` must pass on the branch first. Every job runs on the general runner, in Docker.
-
-| Workflow | Runs for | Does |
-| --- | --- | --- |
-| ``lint.yml`` | Every push. No credentials. | fmt, validate, Ansible syntax, shellcheck. |
-| ``clusters.yml`` | Pull requests and merges touching ``terraform/clusters/``, ``terraform/modules/talos-cluster/`` or itself. | A pull request: ``terraform plan`` (read it in the job's log). A merge into ``master``: plan and apply, ``-parallelism=1``. |
-
-**CI credentials are in Vault, not in Forgejo.** Forgejo gives a repo's secrets to the workflows of any pushed branch, so anyone who can push (Renovate's bot too) could read them with a workflow of their own. Instead, the clusters workflow logs in to Vault with the ID token Forgejo signs for each job (``enable-openid-connect``), and Vault (``terraform/vault``, ``auth/forgejo``) checks the token's claims, which a workflow can't change:
-
-| Vault role | Only for |
-| --- | --- |
-| ``clusters-apply`` | A push to ``master`` (a merge) by the owner, running ``master``'s ``clusters.yml``. |
-| ``clusters-plan`` | A ``pull_request_target`` run of ``master``'s ``clusters.yml`` started by the owner. |
-
-Both read ``labv2/ci/clusters`` (``PM_PASSWORD``, ``PG_PASSWORD``) and nothing else, for 10 minutes. ``clusters.sh`` revokes the Vault token as soon as it has read them, masks them in the log and hands them to Terraform alone. A workflow on any other branch, whoever pushed it, gets nothing.
-
-- Your own pull requests are planned when opened or updated. Someone else's (Renovate's) only when you add a label, after reading it: the plan runs the pull request's Terraform code with the credentials (a provider pointed elsewhere would get them). ``pull_request_target`` makes the workflow and ``clusters.sh`` ``master``'s, whatever the pull request changes; a commit pushed afterwards needs a new label.
-- The job log shows the ID token's claims (not the token). If Vault refuses a run, its error names the claim that didn't match.
-- CI doesn't run ``mgmt.yml``: the talosconfigs only change with a new cluster or new client certificates. Run ``./build.sh clusters`` from a workstation then, and apply even if the plan has no changes (that changes nothing): it writes the talosconfigs and runs ``mgmt.yml``.
-- The gitops and vault roots are only ever applied from a workstation.
-- A failed apply leaves the state as Terraform left it: fix forward with another pull request, or from a workstation with ``./build.sh clusters``.
-
-## Terraform state
-
-**The state contains secrets (the cluster CAs and keys).** Without it Terraform can't manage what it built.
-
-| Root | State | Copies |
-| --- | --- | --- |
-| ``clusters``, ``vault`` | Postgres on the git VM, database ``terraform``, one schema per root (the ``pg`` backend). | The git VM copies each state to the NAS within the hour of a change. |
-| ``gitops`` | ``terraform/gitops/terraform.tfstate`` on the machine running ``build.sh``, git ignored. Applying this root can rebuild the git VM, so its state can't live there. | ``build.sh gitops`` copies it to the NAS after each apply. |
-
-The vault root could keep its state with gitops, but applying it never touches a VM, so Postgres is safe. Only the clusters root is ever applied by CI.
-
-- ``build.sh`` connects as ``terraform`` (``secrets/postgres-password``), over TLS (``git.hirednoobs.com``'s Let's Encrypt certificate, ``sslmode=verify-full``). ``terraform-state.yml`` sets up the database, its roles, the listener and the copies; who may connect from where is ``terraform_state_clients`` in ``playbooks/roles/terraform_state/defaults/main.yml``.
-- The copies are on the NAS share ``terraform-state``, ``<root>/<UTC time>-<serial>.tfstate``: the newest 20 per root are kept, older ones for 90 days. They're plain state files, readable by anyone with the share's password.
-- A failed copy on the git VM fails ``terraform-state-export.service`` (``HostSystemdServiceCrashed`` alerts). ``journalctl -u terraform-state-export`` lists what it copied.
-
-### Setting up
-
-1. On the NAS (by hand): a share ``terraform-state`` and a user ``terraform`` with read/write on that share only. Its password goes in ``secrets/nas-terraform-state`` (no special characters, it's a mount option).
-2. ``openssl rand -hex 32 > secrets/postgres-password``.
-3. ``ansible-playbook terraform-state.yml`` from ``playbooks/`` (``build.sh gitops`` runs it too).
-4. Move each state in: from ``terraform/<root>/`` with ``PG_CONN_STR`` set (as in ``build.sh``), ``terraform init -migrate-state``, answer yes, check ``terraform plan`` shows no changes, then delete the local ``terraform.tfstate*``.
-
-### Break-glass
-
-Without Postgres (the git VM or prx-999 down), from a copy on the NAS:
-
-```bash
-cd terraform/clusters
-cp /path/to/terraform-state/clusters/<newest>.tfstate terraform.tfstate
-cat > backend_override.tf <<'EOF'
-terraform {
-  backend "local" {}
-}
-EOF
-terraform init -reconfigure
-terraform plan
-```
-
-Once Postgres is back, push the state up before removing the override: ``rm backend_override.tf``, ``terraform init -migrate-state`` (it offers to copy the local state), then delete ``terraform.tfstate*``. ``*_override.tf`` is git ignored. Rebuilding prx-999 itself is ``build.sh gitops`` with the gitops state (local, or its copy on the NAS); the git VM's database starts empty, so push the clusters and vault states back the same way.
-
-## Backups
-
-Data, not VMs: the VMs are rebuilt by Terraform and Ansible. ``backups.yml`` (``build.sh gitops`` runs it) sets up a nightly backup on each VM, to a NAS share of its own whose user can only reach that share. A failed backup fails its service (``HostSystemdServiceCrashed`` alerts), ``journalctl -u <service>`` shows each run.
-
-| What | Service | NAS share | Kept |
-| --- | --- | --- | --- |
-| Vault: a Raft snapshot, 03:15 | ``vault-backup`` on the vault VM | ``vault-backups``: ``<UTC time>.snap`` | The newest 14, older ones for 90 days. |
-| Forgejo: a dump of its database, ``/var/lib/forgejo``, ``/etc/forgejo`` (with the generated secrets), 03:30 | ``forgejo-backup`` on the git VM | ``forgejo-backups``: a restic repository in ``restic/`` | 14 daily, 8 weekly, 12 monthly. |
-| Terraform state | See [Terraform state](#terraform-state). | ``terraform-state`` | |
-
-- **Vault's snapshots need ``keys.json`` to be read, Forgejo's repository needs ``secrets/restic-forgejo``.** Neither is on the VMs' shares: keep both (all of ``secrets/``) on the NAS somewhere the VMs can't reach, and an offline copy.
-- Vault's backup logs in with the AppRole ``vault-backup`` (``terraform/vault``), whose token can only take a snapshot and revoke itself, and whose secret ID and tokens only work from the VM (127.0.0.1). ``backups.yml`` creates the secret ID from the controller with the root token (``VaultRootTokenUsed`` and ``VaultConfigChange`` alert, as they should), only when the VM has none: ``-e vault_backup_new_secret_id=true`` replaces it and destroys the old one. Vault must be unsealed and ``terraform/vault`` applied for that, ``backups.yml`` says when it isn't.
-- Forgejo's backup runs as ``forgejo-backup``, which reads every file (``CAP_DAC_READ_SEARCH``) and the database (``pg_read_all_data``) but can't write to Forgejo, and Forgejo (``git``) can't read or delete the backups.
-
-### Setting up the backups
-
-1. On the NAS (by hand): shares ``vault-backups`` and ``forgejo-backups``, users ``vault-backups`` and ``forgejo-backups`` with read/write on their own share only. Their passwords go in ``secrets/nas-vault-backups`` and ``secrets/nas-forgejo-backups`` (no special characters, they're mount options).
-2. ``openssl rand -hex 32 > secrets/restic-forgejo``, then copy it off the laptop (see above).
-3. ``./build.sh vault`` (the AppRole), then ``ansible-playbook backups.yml`` from ``playbooks/`` (``build.sh gitops`` runs it too).
-4. Check a run on each VM: ``sudo systemctl start vault-backup`` / ``forgejo-backup``, then ``journalctl -u`` it.
-
-### Restoring Vault
-
-On a new, empty Vault (``vault.yml`` run, not initialised), with a snapshot copied to the VM:
-
-```bash
-vault operator init -key-shares=1 -key-threshold=1 -format=json > /tmp/init.json
-vault operator unseal "$(jq -r '.unseal_keys_b64[0]' /tmp/init.json)"
-VAULT_TOKEN=$(jq -r .root_token /tmp/init.json) vault operator raft snapshot restore -force <snapshot>.snap
-shred -u /tmp/init.json <snapshot>.snap
-```
-
-From then on it's the snapshot's Vault: ``keys.json``'s keys and root token, the temporary ones are gone. After the next restart unseal it with ``vault-unseal.yml``. Then ``ansible-playbook backups.yml``, which creates a secret ID if the VM has none; if the next backup's login is refused (the snapshot is older than the VM's secret ID), add ``-e vault_backup_new_secret_id=true``.
-
-### Restoring Forgejo
-
-On the git VM after ``forgejo.yml``, as root, with ``RESTIC_REPOSITORY=/mnt/forgejo-backups/restic`` and ``RESTIC_PASSWORD_FILE=/etc/forgejo-backup/restic-password`` (``backups.yml`` sets both up; ``restic snapshots`` lists them):
-
-```bash
-systemctl stop forgejo
-restic restore latest --target /restore
-rsync -a --delete /restore/var/lib/forgejo/ /var/lib/forgejo/
-rsync -a --delete /restore/etc/forgejo/secrets/ /etc/forgejo/secrets/
-sudo -u postgres dropdb forgejo
-sudo -u postgres createdb --owner git --encoding UTF8 --locale C.UTF-8 --template template0 forgejo
-sudo -u postgres psql -X -q -v ON_ERROR_STOP=1 -d forgejo < /restore/var/lib/forgejo-backup/forgejo.sql
-systemctl start forgejo
-sudo -u git forgejo --config /etc/forgejo/app.ini --work-path /var/lib/forgejo doctor check --all
-```
-
-``app.ini`` comes from Ansible, the restored copy is only for comparing. Search indexes and queues aren't backed up, Forgejo rebuilds them. Restore the Terraform state database too if the VM was rebuilt (see [Break-glass](#break-glass)).
 
 ## Clusters
 
@@ -156,75 +41,14 @@ Defined in ``terraform/clusters/clusters.auto.tfvars``, keyed by the tools-bin c
 - ``longhorn_disk`` adds a disk at ``/var/mnt/longhorn`` and the ``node.longhorn.io/create-default-disk=true`` label.
 - ``./build.sh clusters`` writes the talosconfigs to ``~/.talos/contexts/<context>.yaml`` after an apply (from the ``talosconfigs`` output, ``terraform output -json talosconfigs`` gets them any time), they're the way in if the management VMs are down.
 
-## prx-999
+## More
 
-VMs are defined in ``terraform/gitops/servers.auto.tfvars`` as ``prx-999-srv-<role>-<number>``, the role is the Ansible group. Servers count up from 900 / ``.200``, management VMs down from 999 / ``.254``.
-
-| VM | Role | Runs |
-| --- | --- | --- |
-| ``prx-999-srv-mgmt-001`` | ``mgmt`` | The jumpbox: tools-bin, ``talosctl`` and ``kubectl`` for every cluster. |
-| ``prx-999-srv-git-001`` | ``git`` | Forgejo at ``https://git.hirednoobs.com``, and the clusters and vault roots' Terraform state. |
-| ``prx-999-srv-runner-001`` | ``runner`` | forgejo-runner, jobs in Docker. No infrastructure credentials. |
-| ``prx-999-srv-vault-001`` | ``vault`` | Vault at ``https://vault.hirednoobs.com``. |
-
-### prerequisites
-
-Add ``git`` (``.200``) and ``vault`` (``.202``) to the router's DNS, see ``HiredNoobs/documentation/network/router.md``. stack-pihole has the same records.
-
-### Bootstrap secrets
-
-Files in ``secrets/``, on the machine running Ansible.
-
-| File | Used for |
+| Page | Covers |
 | --- | --- |
-| ``cloudflare-api-token`` | certbot (DNS-01). Zone.DNS:Edit on ``hirednoobs.com`` only. |
-| ``vault-keys.json`` | Vault's unseal keys and root token.|
-| ``forgejo-admin-password`` | Creates the first Forgejo admin. |
-| ``forgejo-runner-<host>`` | A runner's registration secret, ``openssl rand -hex 20``, one per runner. |
-| ``forgejo-api-token`` | ``forgejo-repos.yml``. An admin's Forgejo token (``write:repository``, ``read:user``), created in the UI. |
-| ``postgres-password`` | ``build.sh``'s Postgres password for the Terraform state (role ``terraform``), ``openssl rand -hex 32``. |
-| ``postgres-password-ci`` | The same for the clusters workflow (role ``terraform_ci``, from the runner VM). CI reads it from Vault (``labv2/ci/clusters`` ``PG_PASSWORD``): change both together. |
-| ``nas-terraform-state`` | The NAS user ``terraform``'s password, for the state copies (the git VM's mount, ``build.sh``'s ``smbclient``). |
-| ``nas-vault-backups``, ``nas-forgejo-backups`` | The NAS users' passwords for the [backups](#backups) (the vault and git VMs' mounts). |
-| ``restic-forgejo`` | Encrypts Forgejo's backups, ``openssl rand -hex 32``. Without it they can't be read: keep a copy away from prx-999. |
-| ``github-mirror-token`` | Importing the IaC repos and push-mirroring them to GitHub. A fine-grained token for those repos: Contents read/write, Metadata, Issues and Pull requests read. Note its expiry. |
-
-### Vault
-
-Vault starts sealed after every restart. Unseal it with ``ansible-playbook vault-unseal.yml``.
-
-A new, empty Vault is initialised on the VM, save the output as ``secrets/vault-keys.json``:
-
-```bash
-vault operator init -key-shares=4 -key-threshold=3 -format=json \
-  | jq '{keys: .unseal_keys_hex, keys_base64: .unseal_keys_b64, root_token: .root_token}'
-```
-
-### Vault config
-
-``terraform/vault/`` configures Vault, not the VM, so it's its own root: the provider needs Vault up and unsealed to plan. It manages the ``lab`` (kv) and ``labv2`` (kv v2) engines, the userpass auth mount, the policies and a Kubernetes auth mount per cluster (``kubernetes/<cluster>``) for External Secrets Operator in iac-k8s, ESO can only read ``labv2/<environment>/*``. ``auth/forgejo`` lets CI jobs in with their Forgejo ID tokens (see [CI](#ci)): Vault fetches Forgejo's keys from ``https://git.hirednoobs.com/api/actions/.well-known/openid-configuration``, so Forgejo must be up when it's applied. ``auth/approle`` has the Vault VM's backup (see [Backups](#backups)). The secrets aren't managed here.
-
-- Each cluster in ``clusters.auto.tfvars`` needs its API server's CA, from the management VM. The CA is public, commit it. Re-run it if the cluster is rebuilt:
-
-  ```bash
-  kubectl --kubeconfig "$KUBE_CONTEXTS/production.core.yaml" config view --raw \
-    -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d \
-    > terraform/vault/clusters/production-core-ca.crt
-  ```
-
-- ``imports.tf`` imports what stack-vault created. Check the plan only imports them (and shows no replacement), then delete the file after the first apply. The mounts can't be destroyed by Terraform (``prevent_destroy``), replacing one deletes its secrets.
-- Users are added by hand, so their passwords stay out of the state: ``vault write auth/userpass/users/<name> token_policies=lab-policy,labv2-policy password=-`` (reads the password from stdin).
-
-### Forgejo
-
-Only the IaC repos (this one, later the Flux repo) live on Forgejo, everything else stays on GitHub with GitHub's Actions. Forgejo is their upstream: clone from ``git@git.hirednoobs.com:hirednoobs/<repo>.git`` (add your SSH key in the UI), every push is mirrored to the GitHub repo, which is read-only.
-
-``forgejo-repos.yml`` sets them up from ``forgejo_repos`` in ``playbooks/roles/forgejo_repos/defaults/main.yml``: imports the repo from GitHub (history, issues, PRs, releases) if it's missing, adds the push mirror and protects ``master`` from force pushes. Before adding a repo, disable Actions on its GitHub repo and remove any GitHub branch protection (the mirror pushes to it). After rotating ``github-mirror-token``, run ``ansible-playbook forgejo-repos.yml -e forgejo_repos_update_mirror_credentials=true``.
-
-- Workflows go in ``.forgejo/workflows/`` and use ``runs-on: docker``. There are no actions: ``uses:`` resolves against Forgejo (``DEFAULT_ACTIONS_URL = self``, so nothing is fetched from GitHub), but the runner clones actions without a token and ``REQUIRE_SIGNIN_VIEW`` refuses it. Check out with ``git`` and the job token, and install tools with a pinned checksum (see ``lint.yml``).
-- Only code pushed to Forgejo runs CI. Disable Actions on the GitHub push mirrors, and never enable Actions on a pull mirror (a sync counts as a push).
-- To re-register a runner, delete ``/var/lib/forgejo-runner/.runner`` on it and run ``forgejo.yml`` and ``forgejo-runner.yml``.
-- The database, ``/var/lib/forgejo`` and ``/etc/forgejo/secrets`` belong together, they're backed up and restored together (see [Backups](#backups)).
+| [CI](docs/ci.md) | The workflows, and how the clusters workflow gets its credentials from Vault. |
+| [Terraform state](docs/terraform-state.md) | Where each root's state lives, its copies on the NAS, setting it up, break-glass. |
+| [Backups](docs/backups.md) | What's backed up to the NAS, setting it up, restoring Vault and Forgejo. |
+| [prx-999](docs/prx-999.md) | The VMs, their bootstrap secrets, Vault and its config, Forgejo. |
 
 ## Upgrades
 
