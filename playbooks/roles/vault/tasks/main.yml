@@ -55,12 +55,13 @@
   changed_when: false
   failed_when: false
 
-# In a new private directory each time: a fixed name in /tmp can be left over from an earlier
-# run, and replacing it there fails (fs.protected_regular).
+# In a new private directory on disk, removed afterwards: /tmp is a tmpfs of half the memory, too
+# small for the archive and the ~500M binary.
 - block:
     - name: Create a download directory
       tempfile:
         state: directory
+        path: /var/tmp
         prefix: vault-
       register: vault_download
 

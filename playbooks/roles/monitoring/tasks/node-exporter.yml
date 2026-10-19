@@ -11,29 +11,43 @@
   changed_when: false
   failed_when: false
 
+# In a new private directory on disk (/tmp is a tmpfs), removed afterwards.
 - block:
+    - name: Create a download directory
+      tempfile:
+        state: directory
+        path: /var/tmp
+        prefix: node_exporter-
+      register: node_exporter_download
+
     - name: Download node_exporter archive
       get_url:
         url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
         checksum: "sha256:{{ node_exporter_sha256 }}"
-        dest: "/tmp/node_exporter.tar.gz"
+        dest: "{{ node_exporter_download.path }}/node_exporter.tar.gz"
         mode: "0644"
 
     - name: Extract node_exporter
       unarchive:
-        src: "/tmp/node_exporter.tar.gz"
-        dest: "/tmp"
+        src: "{{ node_exporter_download.path }}/node_exporter.tar.gz"
+        dest: "{{ node_exporter_download.path }}"
         remote_src: yes
 
     - name: Install node_exporter binary
       copy:
-        src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+        src: "{{ node_exporter_download.path }}/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
         dest: "{{ node_exporter_install_dir }}/node_exporter"
         mode: "0755"
         owner: root
         group: root
         remote_src: yes
       notify: restart node_exporter
+  always:
+    - name: Remove the download directory
+      file:
+        path: "{{ node_exporter_download.path }}"
+        state: absent
+      when: node_exporter_download.path is defined
   when: ("version " ~ node_exporter_version ~ " ") not in node_exporter_installed.stdout
 
 - name: Create systemd service for node_exporter
