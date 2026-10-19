@@ -8,7 +8,7 @@ Terraform and Ansible for the homelab: the Talos Kubernetes clusters on the ``pr
 | ``terraform/gitops/`` | The ``prx-999`` Debian VMs. | All of them, on the ``prx-999`` VMs. |
 | ``terraform/vault/`` | Vault's config: secret engines, policies, auth (Kubernetes for ESO, Forgejo ID tokens for CI, an AppRole for the Vault backup). | None. |
 
-Each root has its own state (see [Terraform state](docs/terraform-state.md)) and its part of the Ansible inventory in ``playbooks/inventory/`` (the clusters root's is written by ``build.sh`` from its outputs). Nothing in the clusters root depends on ``prx-999``, so the clusters can always be rebuilt from a workstation. Changes to the clusters root go through pull requests: CI plans them and applies them when merged (see [CI](docs/ci.md)).
+Each root has its own state (see [Terraform state](docs/terraform-state.md)) and its part of the Ansible inventory in ``playbooks/inventory/`` (the clusters root's is written by ``build.sh`` from its outputs). Nothing in the clusters root depends on ``prx-999``, so the clusters can always be rebuilt without it. Changes to the clusters root go through pull requests: CI plans them and applies them when merged (see [CI](docs/ci.md)).
 
 ## Usage
 
@@ -29,7 +29,7 @@ export TF_VAR_pm_password="<password for that root's Proxmox>"
 - ``--refresh-keys`` forgets the old SSH host keys, for rebuilt VMs.
 - Playbooks can be run on their own from ``playbooks/``. Tasks handling secrets hide their output, ``-e show_secrets=true`` shows it when debugging.
 - ``./build.sh gitops`` runs ``patch.yml``, which may reboot the Vault VM: unseal it afterwards.
-- Building from scratch: set ``TF_VAR_metrics_server_enabled=false`` for both roots (Proxmox won't add a metric server that doesn't answer), then build them again without it once Flux has deployed vmagent.
+- Building from scratch: see [Rebuilding from nothing](docs/rebuild.md) (the order, and ``TF_VAR_metrics_server_enabled=false`` until vmagent is up).
 - Applying by hand: ``terraform apply -parallelism=1`` from ``terraform/<root>/``, with ``PG_CONN_STR`` set for clusters and vault (as ``build.sh`` sets it).
 
 ## Clusters
@@ -45,6 +45,7 @@ Defined in ``terraform/clusters/clusters.auto.tfvars``, keyed by the tools-bin c
 
 | Page | Covers |
 | --- | --- |
+| [Rebuilding from nothing](docs/rebuild.md) | What's done by hand, the order across the repos, where the data comes back from. |
 | [CI](docs/ci.md) | The workflows, and how the clusters workflow gets its credentials from Vault. |
 | [Terraform state](docs/terraform-state.md) | Where each root's state lives, its copies on the NAS, setting it up, break-glass. |
 | [Backups](docs/backups.md) | What's backed up to the NAS, setting it up, restoring Vault and Forgejo. |
@@ -52,8 +53,8 @@ Defined in ``terraform/clusters/clusters.auto.tfvars``, keyed by the tools-bin c
 
 ## Upgrades
 
-- Talos: bump ``talos_version``, the nodes are upgraded in place one at a time. Don't change ``talos_contract``.
-- Kubernetes: bump ``kubernetes_version``.
-- Vault, Forgejo, forgejo-runner, node_exporter: bump the version and its checksum together in the role's ``defaults/main.yml``. A Vault restart seals it.
-- Lint CI: the tool versions and checksums in ``.forgejo/workflows/lint.yml``, ansible-core in ``.forgejo/requirements-lint.txt`` (regenerate it, see its header).
-- Terraform providers: bump the version, then ``terraform init -upgrade`` and ``terraform providers lock -platform=linux_amd64``.
+Renovate (the renovate repo) opens a pull request for each, a version and its checksum together: Talos and Kubernetes (``talos_version``, ``kubernetes_version``, a minor at a time), Terraform and its providers with the lock files, the roles' Vault, Forgejo, forgejo-runner, node_exporter and Vector, the lint tools and ansible-core. A clusters change is applied by merging it (see [CI](docs/ci.md)), the rest with ``build.sh`` afterwards.
+
+- Talos: the nodes are upgraded in place one at a time. Don't change ``talos_contract``.
+- A Vault restart seals it, unseal it after ``./build.sh gitops``.
+- By hand: a role's version and checksum in its ``defaults/main.yml``, the lint tools' in ``.forgejo/workflows/lint.yml``, ansible-core in ``.forgejo/requirements-lint.in`` (then regenerate ``requirements-lint.txt``, see its header), a provider's version then ``terraform init -upgrade`` and ``terraform providers lock -platform=linux_amd64``.

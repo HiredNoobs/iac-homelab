@@ -18,6 +18,6 @@ Both read ``labv2/ci/clusters`` (``PM_PASSWORD``, ``PG_PASSWORD``) and nothing e
 
 - Your own pull requests are planned when opened or updated. Someone else's (Renovate's) only when you add a label, after reading it: the plan runs the pull request's Terraform code with the credentials (a provider pointed elsewhere would get them). ``pull_request_target`` makes the workflow and ``clusters.sh`` ``master``'s, whatever the pull request changes; a commit pushed afterwards needs a new label.
 - The job log shows the ID token's claims (not the token). If Vault refuses a run, its error names the claim that didn't match.
-- CI doesn't run ``mgmt.yml``: the talosconfigs only change with a new cluster or new client certificates. Run ``./build.sh clusters`` from a workstation then, and apply even if the plan has no changes (that changes nothing): it writes the talosconfigs and runs ``mgmt.yml``.
-- The gitops and vault roots are only ever applied from a workstation.
-- A failed apply leaves the state as Terraform left it: fix forward with another pull request, or from a workstation with ``./build.sh clusters``.
+- CI doesn't run ``mgmt.yml``: the talosconfigs only change with a new cluster or new client certificates. Run ``./build.sh clusters`` by hand then, and apply even if the plan has no changes (that changes nothing): it writes the talosconfigs and runs ``mgmt.yml``.
+- The gitops and vault roots are only ever applied by hand, with ``build.sh``.
+- A failed apply leaves the state as Terraform left it: fix forward with another pull request, or by hand with ``./build.sh clusters``.

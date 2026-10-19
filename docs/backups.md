@@ -15,7 +15,7 @@ Data, not VMs: the VMs are rebuilt by Terraform and Ansible. ``backups.yml`` (``
 ## Setting up the backups
 
 1. On the NAS (by hand): shares ``vault-backups`` and ``forgejo-backups``, users ``vault-backups`` and ``forgejo-backups`` with read/write on their own share only. Their passwords go in ``secrets/nas-vault-backups`` and ``secrets/nas-forgejo-backups`` (no special characters, they're mount options).
-2. ``openssl rand -hex 32 > secrets/restic-forgejo``, then copy it off the laptop (see above).
+2. ``openssl rand -hex 32 > secrets/restic-forgejo``, then copy it off the machine running Ansible (see above).
 3. ``./build.sh vault`` (the AppRole), then ``ansible-playbook backups.yml`` from ``playbooks/`` (``build.sh gitops`` runs it too).
 4. Check a run on each VM: ``sudo systemctl start vault-backup`` / ``forgejo-backup``, then ``journalctl -u`` it.
 
