@@ -55,35 +55,43 @@
   changed_when: false
   failed_when: false
 
+# In a new private directory each time: a fixed name in /tmp can be left over from an earlier
+# run, and replacing it there fails (fs.protected_regular).
 - block:
+    - name: Create a download directory
+      tempfile:
+        state: directory
+        prefix: vault-
+      register: vault_download
+
     - name: Download vault archive
       get_url:
         url: "https://releases.hashicorp.com/vault/{{ vault_version }}/vault_{{ vault_version }}_linux_amd64.zip"
         checksum: "sha256:{{ vault_sha256 }}"
-        dest: "/tmp/vault.zip"
+        dest: "{{ vault_download.path }}/vault.zip"
         mode: "0644"
-
-    - name: Ensure extract directory exists
-      file:
-        path: "/tmp/vault-{{ vault_version }}"
-        state: directory
-        mode: "0755"
 
     - name: Extract vault
       unarchive:
-        src: "/tmp/vault.zip"
-        dest: "/tmp/vault-{{ vault_version }}"
+        src: "{{ vault_download.path }}/vault.zip"
+        dest: "{{ vault_download.path }}"
         remote_src: yes
 
     - name: Install vault binary
       copy:
-        src: "/tmp/vault-{{ vault_version }}/vault"
+        src: "{{ vault_download.path }}/vault"
         dest: "{{ vault_install_dir }}/vault"
         mode: "0755"
         owner: root
         group: root
         remote_src: yes
       notify: restart vault
+  always:
+    - name: Remove the download directory
+      file:
+        path: "{{ vault_download.path }}"
+        state: absent
+      when: vault_download.path is defined
   when: ("Vault v" ~ vault_version ~ " ") not in vault_installed.stdout
 
 # -----------------------------------------------------
