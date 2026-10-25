@@ -10,8 +10,8 @@ on:
 env:
   # The same version as required_version in each Terraform root.
   # renovate: datasource=github-releases depName=hashicorp/terraform extractVersion=^v(?<version>.+)$
-  TERRAFORM_VERSION: "1.15.9"
-  TERRAFORM_SHA256: "76edd0b22d2f27d3d2e097cd793209646f719cf60f02ff3af626b07361137da1"
+  TERRAFORM_VERSION: "1.16.6"
+  TERRAFORM_SHA256: "38034b38d03096399a7a1264a14561a8029b2b496fd1f169452656e53968f1b7"
   # authorized_key (movein) is the only module from outside ansible-core.
   # renovate: datasource=galaxy-collection depName=ansible.posix
   ANSIBLE_POSIX_VERSION: "2.2.2"
