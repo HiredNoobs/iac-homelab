@@ -23,7 +23,7 @@ forgejo_runner_jobs_memory_max: 3G
 
 # runs-on: <label>. Images pinned by digest, Renovate bumps them.
 forgejo_runner_labels:
-  - "docker:docker://docker.io/library/node:24-trixie@sha256:ff054b356ab93ed540518ca23cfcd9840e5256dd04db5a8d8afc43f4ecc7c9f8"
+  - "docker:docker://docker.io/library/node:26-trixie@sha256:6d2c7d5d074bf72f81ddc252b4fbb5d625bc028eeda49cb4b8c2ff8eda1ee617"
 
 # Images and build cache older than this are pruned weekly.
 forgejo_runner_prune_until: 168h
