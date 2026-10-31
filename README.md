@@ -30,7 +30,7 @@ export TF_VAR_pm_password="<password for that root's Proxmox>"
 - Playbooks can be run on their own from ``playbooks/``. Tasks handling secrets hide their output, ``-e show_secrets=true`` shows it when debugging.
 - ``./build.sh gitops`` runs ``patch.yml``, which may reboot the Vault VM: unseal it afterwards.
 - Building from scratch: see [Rebuilding from nothing](docs/rebuild.md) (the order, and ``TF_VAR_metrics_server_enabled=false`` until vmagent is up).
-- Applying by hand: ``terraform apply -parallelism=1`` from ``terraform/<root>/``, with ``PG_CONN_STR`` set for clusters and vault (as ``build.sh`` sets it).
+- Applying by hand: ``terraform apply -parallelism=1`` from ``terraform/<root>/``, with ``PG_CONN_STR`` set for clusters and vault (as ``state.sh`` builds it).
 
 ## Clusters
 

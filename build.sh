@@ -3,6 +3,9 @@
 THIS=$(realpath "$0")
 HERE=$(dirname "$THIS")
 
+# shellcheck source=state.sh
+source "$HERE/state.sh"
+
 # Terraform root in terraform/.
 ROOT=""
 
@@ -36,12 +39,8 @@ GITOPS_PLAYBOOKS=(
 
 # Vault's config has no hosts, nothing runs after it.
 
-# The clusters and vault roots keep their state in Postgres on the git VM (terraform-state.yml),
-# as this database role unless PG_CONN_STR is already set. The gitops root's stays here, in
-# terraform/gitops/, with a copy on the NAS after each apply (smbclient, as NAS_USER).
-STATE_HOST=git.hirednoobs.com
-STATE_DATABASE=terraform
-STATE_ROLE=terraform
+# The clusters and vault roots keep their state in Postgres (state.sh). The gitops root's stays
+# here, in terraform/gitops/, with a copy on the NAS after each apply (smbclient, as NAS_USER).
 NAS_SHARE=//192.168.111.6/terraform-state
 NAS_USER=terraform
 
@@ -168,9 +167,8 @@ if [[ "$ROOT" == "vault" && -z "${VAULT_TOKEN:-}" ]]; then
   export VAULT_TOKEN
 fi
 
-if [[ "$ROOT" != "gitops" && -z "${PG_CONN_STR:-}" ]]; then
-  PG_CONN_STR="postgres://$STATE_ROLE:$(cat "$HERE/secrets/postgres-password")@$STATE_HOST/$STATE_DATABASE?sslmode=verify-full" || exit 1
-  export PG_CONN_STR
+if [[ "$ROOT" != "gitops" ]]; then
+  export_pg_conn_str || exit 1
 fi
 
 run_terraform

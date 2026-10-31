@@ -74,7 +74,7 @@ jobs:
 
       - name: Shell
         run: >-
-          shellcheck build.sh teardown.sh .forgejo/scripts/update-pins.sh .forgejo/scripts/clusters.sh
+          shellcheck build.sh teardown.sh state.sh .forgejo/scripts/update-pins.sh .forgejo/scripts/clusters.sh
           playbooks/roles/terraform_state/files/terraform-state-export
           playbooks/roles/vault_backup/files/vault-backup
           playbooks/roles/forgejo_backup/files/forgejo-backup

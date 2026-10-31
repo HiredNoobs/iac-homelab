@@ -18,7 +18,7 @@ The vault root could keep its state with gitops, but applying it never touches a
 1. On the NAS (by hand): a share ``terraform-state`` and a user ``terraform`` with read/write on that share only. Its password goes in ``secrets/nas-terraform-state`` (no special characters, it's a mount option).
 2. ``openssl rand -hex 32 > secrets/postgres-password``.
 3. ``ansible-playbook terraform-state.yml`` from ``playbooks/`` (``build.sh gitops`` runs it too).
-4. Move each state in: from ``terraform/<root>/`` with ``PG_CONN_STR`` set (as in ``build.sh``), ``terraform init -migrate-state``, answer yes, check ``terraform plan`` shows no changes, then delete the local ``terraform.tfstate*``.
+4. Move each state in: from ``terraform/<root>/`` with ``PG_CONN_STR`` set (as in ``state.sh``), ``terraform init -migrate-state``, answer yes, check ``terraform plan`` shows no changes, then delete the local ``terraform.tfstate*``.
 
 ## Break-glass
 
