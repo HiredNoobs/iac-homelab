@@ -3,6 +3,9 @@
 THIS=$(realpath "$0")
 HERE=$(dirname "$THIS")
 
+# shellcheck source=state.sh
+source "$HERE/state.sh"
+
 case "$1" in
   clusters|gitops) ;;
   *)
@@ -11,10 +14,9 @@ case "$1" in
     ;;
 esac
 
-# The clusters root's state is in Postgres, see build.sh.
-if [[ "$1" == "clusters" && -z "${PG_CONN_STR:-}" ]]; then
-  PG_CONN_STR="postgres://terraform:$(cat "$HERE/secrets/postgres-password")@git.hirednoobs.com/terraform?sslmode=verify-full" || exit 1
-  export PG_CONN_STR
+# The clusters root's state is in Postgres (state.sh).
+if [[ "$1" == "clusters" ]]; then
+  export_pg_conn_str || exit 1
 fi
 
 cd "$HERE/terraform/$1" || exit 1
