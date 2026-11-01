@@ -3,6 +3,9 @@
 # to rebuild Vault. See docs/prx-999.md for the files.
 bootstrap_secrets_dir: "{{ playbook_dir }}/../secrets"
 
+# The NAS, a share each for the backups and the Terraform state copies (build.sh has it too).
+nas_host: 192.168.111.6
+
 # Tasks handling secrets hide their output (no_log), including their errors. To debug one, re-run
 # with -e show_secrets=true, the secrets are then printed too.
 show_secrets: false

@@ -11,7 +11,7 @@ vault_backup_new_secret_id: false
 vault_backup_keys_file: "{{ bootstrap_secrets_dir }}/vault-keys.json"
 
 # The share's user has access to that share only.
-vault_backup_nas_share: //192.168.111.6/vault-backups
+vault_backup_nas_share: "//{{ nas_host }}/vault-backups"
 vault_backup_nas_username: vault-backups
 vault_backup_nas_password_file: "{{ bootstrap_secrets_dir }}/nas-vault-backups"
 vault_backup_mount: /mnt/vault-backups

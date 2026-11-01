@@ -15,7 +15,7 @@ forgejo_backup_exclude:
   - "{{ forgejo_work_dir }}/data/tmp"
 
 # The share's user has access to that share only.
-forgejo_backup_nas_share: //192.168.111.6/forgejo-backups
+forgejo_backup_nas_share: "//{{ nas_host }}/forgejo-backups"
 forgejo_backup_nas_username: forgejo-backups
 forgejo_backup_nas_password_file: "{{ bootstrap_secrets_dir }}/nas-forgejo-backups"
 forgejo_backup_mount: /mnt/forgejo-backups

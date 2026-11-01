@@ -23,7 +23,7 @@ terraform_state_domain: "git.{{ domain }}"
 
 # Copies of every state on the NAS, written when a state changes: the way back if this VM is lost
 # (docs/terraform-state.md). The share's user has access to that share only.
-terraform_state_nas_share: //192.168.111.6/terraform-state
+terraform_state_nas_share: "//{{ nas_host }}/terraform-state"
 terraform_state_nas_username: terraform
 terraform_state_nas_password_file: "{{ bootstrap_secrets_dir }}/nas-terraform-state"
 terraform_state_mount: /mnt/terraform-state
