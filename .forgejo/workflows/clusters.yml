@@ -51,28 +51,19 @@ jobs:
           apt-get install -y -q --no-install-recommends jq unzip
 
       # Not actions/checkout (see lint.yml). The job token goes in a header, so it isn't saved.
-      # master as the pull request's base had it: the script that handles the credentials.
-      - name: Checkout master
-        env:
-          TOKEN: ${{ github.token }}
-        run: |
-          auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
-          git init -q trusted
-          git -C trusted -c http.extraHeader="Authorization: Basic $auth" \
-            fetch -q --depth 1 "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
-          git -C trusted checkout -q FETCH_HEAD
-
-      # The commit the run was started for, not whatever the branch points at by now.
-      - name: Checkout the pull request
+      # trusted: master as the pull request's base had it, the script that handles the credentials.
+      # pr: the commit the run was started for, not whatever the branch points at by now.
+      - name: Checkout master and the pull request
         env:
           TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           auth=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
-          git init -q pr
-          git -C pr -c http.extraHeader="Authorization: Basic $auth" \
-            fetch -q --depth 1 "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" "$HEAD_SHA"
-          git -C pr checkout -q FETCH_HEAD
+          git init -q --bare repo.git
+          git -C repo.git -c http.extraHeader="Authorization: Basic $auth" \
+            fetch -q --depth 1 "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA" "$HEAD_SHA"
+          git -C repo.git worktree add -q ../trusted "$GITHUB_SHA"
+          git -C repo.git worktree add -q ../pr "$HEAD_SHA"
 
       - name: Plan
         run: bash trusted/.forgejo/scripts/clusters.sh plan pr
