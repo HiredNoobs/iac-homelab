@@ -56,44 +56,15 @@
   changed_when: false
   failed_when: false
 
-# In a new private directory on disk, removed afterwards: /tmp is a tmpfs of half the memory, too
-# small for the archive and the ~500M binary.
-- block:
-    - name: Create a download directory
-      tempfile:
-        state: directory
-        path: /var/tmp
-        prefix: vault-
-      register: vault_download
-
-    - name: Download vault archive
-      get_url:
-        url: "https://releases.hashicorp.com/vault/{{ vault_version }}/vault_{{ vault_version }}_linux_amd64.zip"
-        checksum: "sha256:{{ vault_sha256 }}"
-        dest: "{{ vault_download.path }}/vault.zip"
-        mode: "0644"
-
-    - name: Extract vault
-      unarchive:
-        src: "{{ vault_download.path }}/vault.zip"
-        dest: "{{ vault_download.path }}"
-        remote_src: yes
-
-    - name: Install vault binary
-      copy:
-        src: "{{ vault_download.path }}/vault"
-        dest: "{{ vault_install_dir }}/vault"
-        mode: "0755"
-        owner: root
-        group: root
-        remote_src: yes
-      notify: restart vault
-  always:
-    - name: Remove the download directory
-      file:
-        path: "{{ vault_download.path }}"
-        state: absent
-      when: vault_download.path is defined
+- name: Install vault
+  include_role:
+    name: download
+  vars:
+    download_url: "https://releases.hashicorp.com/vault/{{ vault_version }}/vault_{{ vault_version }}_linux_amd64.zip"
+    download_sha256: "{{ vault_sha256 }}"
+    download_binary: vault
+    download_dest: "{{ vault_install_dir }}/vault"
+    download_notify: restart vault
   when: ("Vault v" ~ vault_version ~ " ") not in vault_installed.stdout
 
 # -----------------------------------------------------

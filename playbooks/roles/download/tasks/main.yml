@@ -1,0 +1,48 @@
+# Installs a release, checked against its sha256: a .deb with apt, or download_binary (its path
+# inside the archive) as download_dest. Notifies download_notify when it installs. Downloaded to a
+# new private directory on disk, removed afterwards: /tmp is a tmpfs of half the memory, too small
+# for Vault's archive and ~500M binary.
+- block:
+    - name: Create a download directory
+      tempfile:
+        state: directory
+        path: /var/tmp
+        prefix: download-
+      register: download_dir
+
+    - name: Download {{ download_file }}
+      get_url:
+        url: "{{ download_url }}"
+        checksum: "sha256:{{ download_sha256 }}"
+        dest: "{{ download_dir.path }}/{{ download_file }}"
+        mode: "0644"
+
+    - name: Install the package
+      apt:
+        deb: "{{ download_dir.path }}/{{ download_file }}"
+      when: download_binary is not defined
+      notify: "{{ download_notify }}"
+
+    - name: Extract the archive
+      unarchive:
+        src: "{{ download_dir.path }}/{{ download_file }}"
+        dest: "{{ download_dir.path }}"
+        remote_src: yes
+      when: download_binary is defined
+
+    - name: Install the binary
+      copy:
+        src: "{{ download_dir.path }}/{{ download_binary }}"
+        dest: "{{ download_dest }}"
+        mode: "0755"
+        owner: root
+        group: root
+        remote_src: yes
+      when: download_binary is defined
+      notify: "{{ download_notify }}"
+  always:
+    - name: Remove the download directory
+      file:
+        path: "{{ download_dir.path }}"
+        state: absent
+      when: download_dir.path is defined
