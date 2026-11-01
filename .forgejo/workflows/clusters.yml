@@ -20,6 +20,7 @@ on:
     paths:
       - terraform/clusters/**
       - terraform/modules/talos-cluster/**
+      - terraform/modules/proxmox-metrics/**
       - .forgejo/workflows/clusters.yml
       - .forgejo/scripts/clusters.sh
   push:
@@ -28,6 +29,7 @@ on:
     paths:
       - terraform/clusters/**
       - terraform/modules/talos-cluster/**
+      - terraform/modules/proxmox-metrics/**
       - .forgejo/workflows/clusters.yml
       - .forgejo/scripts/clusters.sh
 
