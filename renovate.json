@@ -41,10 +41,14 @@
   ],
   "packageRules": [
     {
-      "description": "The Terraform CLI: required_version in every root, lint.yml and clusters.yml",
-      "matchPackageNames": ["hashicorp/terraform"],
+      "description": "The Terraform CLI (required_version in every root, lint.yml and clusters.yml) follows Arch Linux's package, the workstation's version. Repology gives Arch's version with its pkgrel (1.15.9-1) and no release dates: Arch's packaging is the wait.",
+      "matchDepNames": ["hashicorp/terraform", "arch/terraform"],
+      "overrideDatasource": "repology",
+      "overridePackageName": "arch/terraform",
+      "extractVersion": "^(?<version>.+)-[0-9.]+$",
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
       "groupName": "terraform",
-      "prBodyNotes": ["Install the new version on the workstation too. Merging this runs the clusters workflow with it (a no-op apply)."]
+      "prBodyNotes": ["Update the workstation from Arch first. Merging this runs the clusters workflow with it (a no-op apply)."]
     },
     {
       "description": "Talos and Kubernetes: one minor version at a time, each applied when merged",
