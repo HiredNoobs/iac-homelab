@@ -8,7 +8,7 @@ Data, not VMs: the VMs are rebuilt by Terraform and Ansible. ``backups.yml`` (``
 | Forgejo: a dump of its database, ``/var/lib/forgejo``, ``/etc/forgejo`` (with the generated secrets), 03:30 | ``forgejo-backup`` on the git VM | ``forgejo-backups``: a restic repository in ``restic/`` | 14 daily, 8 weekly, 12 monthly. |
 | Terraform state | See [Terraform state](terraform-state.md). | ``terraform-state`` | |
 
-- **Vault's snapshots need ``keys.json`` to be read, Forgejo's repository needs ``secrets/restic-forgejo``.** Neither is on the VMs' shares: keep both (all of ``secrets/``) on the NAS somewhere the VMs can't reach, and an offline copy.
+- **Vault's snapshots need ``secrets/vault-keys.json`` to be read, Forgejo's repository needs ``secrets/restic-forgejo``.** Neither is on the VMs' shares: keep both (all of ``secrets/``) on the NAS somewhere the VMs can't reach, and an offline copy.
 - Vault's backup logs in with the AppRole ``vault-backup`` (``terraform/vault``), whose token can only take a snapshot and revoke itself, and whose secret ID and tokens only work from the VM (127.0.0.1). ``backups.yml`` creates the secret ID from the controller with the root token (``VaultRootTokenUsed`` and ``VaultConfigChange`` alert, as they should), only when the VM has none: ``-e vault_backup_new_secret_id=true`` replaces it and destroys the old one. Vault must be unsealed and ``terraform/vault`` applied for that, ``backups.yml`` says when it isn't.
 - Forgejo's backup runs as ``forgejo-backup``, which reads every file (``CAP_DAC_READ_SEARCH``) and the database (``pg_read_all_data``) but can't write to Forgejo, and Forgejo (``git``) can't read or delete the backups.
 
@@ -30,7 +30,7 @@ VAULT_TOKEN=$(jq -r .root_token /tmp/init.json) vault operator raft snapshot res
 shred -u /tmp/init.json <snapshot>.snap
 ```
 
-From then on it's the snapshot's Vault: ``keys.json``'s keys and root token, the temporary ones are gone. After the next restart unseal it with ``vault-unseal.yml``. Then ``ansible-playbook backups.yml``, which creates a secret ID if the VM has none; if the next backup's login is refused (the snapshot is older than the VM's secret ID), add ``-e vault_backup_new_secret_id=true``.
+From then on it's the snapshot's Vault: ``vault-keys.json``'s keys and root token, the temporary ones are gone. After the next restart unseal it with ``vault-unseal.yml``. Then ``ansible-playbook backups.yml``, which creates a secret ID if the VM has none; if the next backup's login is refused (the snapshot is older than the VM's secret ID), add ``-e vault_backup_new_secret_id=true``.
 
 ## Restoring Forgejo
 

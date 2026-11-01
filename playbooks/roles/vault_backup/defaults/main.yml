@@ -1,5 +1,5 @@
 # A Raft snapshot of Vault to the NAS every night. Snapshots are encrypted by Vault: restoring one
-# needs keys.json's unseal keys, which never go on the share (README, Backups).
+# needs vault-keys.json's unseal keys, which never go on the share (docs/backups.md).
 vault_backup_user: vault-backup
 vault_backup_config_dir: /etc/vault-backup
 

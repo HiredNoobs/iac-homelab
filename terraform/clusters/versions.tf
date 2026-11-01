@@ -3,7 +3,7 @@ terraform {
   required_version = "1.15.9"
 
   # In Postgres on the git VM (PG_CONN_STR, set by build.sh). Without it, from a copy on the NAS:
-  # README, Terraform state.
+  # docs/terraform-state.md.
   backend "pg" {
     schema_name = "clusters"
   }

@@ -1,5 +1,6 @@
-# Single node Vault with raft storage. The role doesn't initialise Vault or unseal it, see the
-# README for initialising or restoring a snapshot, and vault-unseal.yml after every restart.
+# Single node Vault with raft storage. The role doesn't initialise Vault or unseal it: see
+# docs/prx-999.md for initialising, docs/backups.md for restoring a snapshot, and vault-unseal.yml
+# after every restart.
 
 # Vault's memory (unseal keys, tokens) mustn't be written to disk, mlock is off for raft.
 - name: Check there's no swap
@@ -132,7 +133,7 @@
 # Service
 # -----------------------------------------------------
 
-# Ported from stack-vault's vault.json. Changes need a restart, which seals Vault.
+# Changes need a restart, which seals Vault.
 - name: Deploy vault config
   copy:
     dest: "{{ vault_config_dir }}/vault.hcl"

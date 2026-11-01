@@ -50,7 +50,7 @@ variable "vlan_id" {
 # Storage
 # -----------------------------------------------------
 
-# Needs the "ISO image" content type, the Talos and Debian disk images are downloaded here.
+# Needs the "ISO image" content type, the Talos disk image is downloaded here.
 variable "image_datastore" {
   type    = string
   default = "local"
