@@ -65,7 +65,9 @@ function run_terraform {
   # Providers come from the committed .terraform.lock.hcl, bump them deliberately.
   terraform init
   terraform validate || exit 1
-  # Saved so the apply is exactly what was reviewed, it contains secrets and is git ignored.
+  # Saved so the apply is exactly what was reviewed. It contains secrets and is git ignored, and
+  # it's removed however this exits.
+  trap 'rm -f "$HERE/terraform/$ROOT/tfplan"' EXIT
   terraform plan -out=tfplan || exit 1
 
   read -r -p "Apply Terraform? [y/N]: " confirm
@@ -76,11 +78,9 @@ function run_terraform {
     terraform apply -parallelism=1 tfplan || exit 1
   else
     echo "Skipping build."
-    rm -f tfplan
     exit 0
   fi
 
-  rm -f tfplan
   [[ "$ROOT" == "clusters" ]] && write_cluster_files
   [[ "$ROOT" == "gitops" ]] && copy_gitops_state
   cd "$HERE" || exit 1
@@ -119,14 +119,13 @@ function copy_gitops_state {
 }
 
 function run_playbooks {
-  local limit="$1" hosts
+  local limit="$1"
   shift
 
   cd "$HERE/playbooks" || exit 1
 
   # e.g. no management VM yet, while it's being replaced.
-  hosts=$(ansible "$limit" --list-hosts 2> /dev/null | grep -c "^    [^ ]")
-  if [[ -z "$hosts" || "$hosts" == "0" ]]; then
+  if ! ansible "$limit" --list-hosts 2> /dev/null | grep -q "^    [^ ]"; then
     echo "No hosts in '$limit', skipping the playbooks."
     cd "$HERE" || exit 1
     return 0

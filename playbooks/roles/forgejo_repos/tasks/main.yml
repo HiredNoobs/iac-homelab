@@ -127,7 +127,7 @@
 # unless that says otherwise.
 - name: Check branch protection
   uri:
-    url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.name }}/branch_protections/{{ item.branch | default('master') }}"
+    url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.name }}/branch_protections/master"
     headers: "{{ forgejo_repos_headers }}"
     status_code: [200, 404]
   loop: "{{ forgejo_repos }}"
@@ -142,7 +142,7 @@
     method: POST
     headers: "{{ forgejo_repos_headers }}"
     body_format: json
-    body: "{{ {'rule_name': item.item.branch | default('master'), 'enable_push': true} | combine(item.item.protection | default({})) }}"
+    body: "{{ {'rule_name': 'master', 'enable_push': true} | combine(item.item.protection | default({})) }}"
     status_code: 201
   loop: "{{ forgejo_repos_protections.results }}"
   loop_control:
@@ -154,7 +154,7 @@
 # An existing rule only gets the settings in protection, when they differ.
 - name: Update branch protection
   uri:
-    url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.item.name }}/branch_protections/{{ item.item.branch | default('master') }}"
+    url: "{{ forgejo_repos_api }}/repos/{{ forgejo_repos_owner }}/{{ item.item.name }}/branch_protections/master"
     method: PATCH
     headers: "{{ forgejo_repos_headers }}"
     body_format: json
