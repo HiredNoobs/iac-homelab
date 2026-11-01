@@ -41,7 +41,7 @@ GITOPS_PLAYBOOKS=(
 
 # The clusters and vault roots keep their state in Postgres (state.sh). The gitops root's stays
 # here, in terraform/gitops/, with a copy on the NAS after each apply (smbclient, as NAS_USER).
-NAS_SHARE=//192.168.111.6/terraform-state
+NAS_SHARE=//192.168.111.6/terraform-state  # nas_host in playbooks/group_vars/all.yml
 NAS_USER=terraform
 
 # -----------------------------------------------------
