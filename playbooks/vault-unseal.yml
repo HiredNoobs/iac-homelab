@@ -1,7 +1,7 @@
 ---
 # Unseals Vault after a restart (reboot, patch.yml, a config change). Run it from playbooks/:
 #   ansible-playbook vault-unseal.yml
-# The keys are read from keys.json on the controller and only sent over SSH, they're passed
+# The keys are read from vault-keys.json on the controller and only sent over SSH, they're passed
 # to the vault CLI on stdin so they don't show up in process lists.
 - hosts: vault
   become: yes
@@ -24,7 +24,7 @@
     - name: Check vault is initialised
       assert:
         that: (vault_status.stdout | from_json).initialized
-        fail_msg: "Vault isn't initialised, see the README for initialising or restoring a snapshot."
+        fail_msg: "Vault isn't initialised: docs/prx-999.md, or docs/backups.md to restore it."
         quiet: yes
 
     # 'vault operator unseal' can't read the key from stdin, 'vault write' can with key=-.

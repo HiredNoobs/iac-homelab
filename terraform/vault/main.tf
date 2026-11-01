@@ -1,5 +1,5 @@
 # Vault's config. The secrets themselves aren't managed here, they're written with tools-bin
-# (deployment secret push) or the UI. Users (userpass) are added by hand, see the README.
+# (deployment secret push) or the UI. Users (userpass) are added by hand, see docs/prx-999.md.
 
 # -----------------------------------------------------
 # Secret engines
@@ -215,7 +215,7 @@ resource "vault_approle_auth_backend_role" "vault_backup" {
 # every request when no audit device can write: a full disk shouldn't stop it while the journal
 # still works, and the other way round.
 #
-# stdout lands in the journal (vault.service), which systemd-journal-upload sends to
+# stdout lands in the journal (vault.service), which Vector (the vector role) sends to
 # VictoriaLogs for the security detections (iac-k8s rules/journald.yml). The file stays on the
 # VM, rotated by the vault role's logrotate (which reloads Vault so it reopens it); the
 # directory has to exist first (vault.yml), or Vault refuses to enable the device.

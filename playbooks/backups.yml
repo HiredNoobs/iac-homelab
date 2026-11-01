@@ -1,5 +1,5 @@
 ---
-# Backups of prx-999's data to the NAS (README, Backups). After vault.yml and forgejo.yml. Vault's
+# Backups of prx-999's data to the NAS (docs/backups.md). After vault.yml and forgejo.yml. Vault's
 # needs terraform/vault applied (its AppRole) and Vault unsealed to create its secret ID, and
 # says so when it can't.
 - hosts: vault

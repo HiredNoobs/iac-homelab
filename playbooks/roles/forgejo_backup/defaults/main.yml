@@ -1,6 +1,6 @@
 # Forgejo to a restic repository on the NAS every night: its database, its work directory (repos,
 # LFS, attachments, packages, Actions logs) and its config with the generated secrets, which
-# have to be restored together (README, Backups).
+# have to be restored together (docs/backups.md).
 forgejo_backup_user: forgejo-backup
 forgejo_backup_config_dir: /etc/forgejo-backup
 

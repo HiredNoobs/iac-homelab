@@ -27,5 +27,5 @@
         msg: >-
           {{ inventory_hostname }} is
           {{ 'sealed, run vault-unseal.yml' if (vault_status.stdout | from_json).initialized
-             else 'not initialised, see the README' }}.
+             else 'not initialised, see docs/prx-999.md or docs/backups.md' }}.
       when: (vault_status.stdout | from_json).sealed
