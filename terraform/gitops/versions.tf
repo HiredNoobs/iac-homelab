@@ -5,7 +5,7 @@ terraform {
   required_providers {
     proxmox = {
       source  = "bpg/proxmox"
-      version = "0.116.1"
+      version = "0.118.0"
     }
     local = {
       source  = "hashicorp/local"
