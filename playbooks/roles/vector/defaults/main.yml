@@ -2,8 +2,8 @@
 # vector-<version>-SHA256SUMS. Keep it the version iac-k8s' Vector runs
 # (apps/base/vector/daemonset.yaml).
 # renovate: datasource=github-releases depName=vectordotdev/vector extractVersion=^v(?<version>.+)$
-vector_version: "0.59.0"
-vector_sha256: "1dd9f52bda25d2364ab04d496a3b7edbc775b1a3cd02d9985eb81f3c174a245f"
+vector_version: "0.60.0"
+vector_sha256: "985f74a8e07ac8efabc891324435451823e77da5b98b636bd7594f402db41219"
 
 # The cluster's Vector, through the Gateway (iac-k8s apps/base/vector/journald-route.yaml, which
 # only lets the prx-999 VMs in).
