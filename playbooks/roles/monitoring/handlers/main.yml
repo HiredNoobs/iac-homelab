@@ -2,3 +2,8 @@
   systemd:
     name: node_exporter
     state: restarted
+
+- name: run package-versions
+  systemd:
+    name: package-versions.service
+    state: started

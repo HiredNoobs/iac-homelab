@@ -39,7 +39,8 @@
       ExecStart={{ node_exporter_install_dir }}/node_exporter \
         --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|run)($|/) \
         --collector.systemd \
-        --collector.processes
+        --collector.processes \
+        --collector.textfile.directory={{ node_exporter_textfile_dir }}
       Restart=on-failure
 
       [Install]
@@ -53,3 +54,78 @@
     name: node_exporter
     enabled: yes
     state: started
+
+# -----------------------------------------------------
+# Package versions
+# -----------------------------------------------------
+
+# Every Debian package and the binaries installed outside dpkg, for matching against advisories
+# (advisory-map in iac-k8s). Rewritten hourly, and by APT after it changes packages.
+
+- name: Ensure node_exporter's textfile directory exists
+  file:
+    path: "{{ node_exporter_textfile_dir }}"
+    state: directory
+    owner: "{{ node_exporter_user }}"
+    group: "{{ node_exporter_user }}"
+    mode: "0755"
+
+- name: Install the package versions script
+  copy:
+    src: package-versions
+    dest: /usr/local/bin/package-versions
+    mode: "0755"
+  notify: run package-versions
+
+- name: Create the package versions service
+  copy:
+    dest: /etc/systemd/system/package-versions.service
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Write the installed package versions for node_exporter
+
+      [Service]
+      Type=oneshot
+      User={{ node_exporter_user }}
+      Group={{ node_exporter_user }}
+      Environment=OUTPUT={{ node_exporter_textfile_dir }}/package-versions.prom
+      ExecStart=/usr/local/bin/package-versions {{ package_versions_binaries | join(' ') }}
+      NoNewPrivileges=yes
+      ProtectSystem=strict
+      ReadWritePaths={{ node_exporter_textfile_dir }}
+      ProtectHome=yes
+      PrivateTmp=yes
+  notify:
+    - reload systemd
+    - run package-versions
+
+- name: Create the package versions timer
+  copy:
+    dest: /etc/systemd/system/package-versions.timer
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=Hourly package versions for node_exporter
+
+      [Timer]
+      OnCalendar=hourly
+
+      [Install]
+      WantedBy=timers.target
+  notify: reload systemd
+
+- name: Enable the package versions timer
+  systemd:
+    name: package-versions.timer
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+# --no-block: APT doesn't wait for it. A failure never fails APT.
+- name: Rewrite the package versions after every APT run
+  copy:
+    dest: /etc/apt/apt.conf.d/90package-versions
+    mode: "0644"
+    content: |
+      DPkg::Post-Invoke { "systemctl start --no-block package-versions.service || true"; };

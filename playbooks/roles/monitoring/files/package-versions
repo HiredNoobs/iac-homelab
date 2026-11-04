@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Writes what's installed as node_exporter textfile metrics: every Debian package, and the version
+# of each binary given as an argument (those not installed here are skipped). Run by
+# package-versions.service (a timer, and APT after every dpkg run), which sets:
+#
+#   OUTPUT  the .prom file in node_exporter's textfile directory, replaced as a whole
+#
+# It runs as node_exporter's user, so the file is only readable by that user (mktemp's 0600).
+
+set -euo pipefail
+
+: "${OUTPUT:?}"
+
+# The first x.y.z in a binary's --version output, with what follows it (-rc1, +build).
+version_re='[0-9]+\.[0-9]+\.[0-9]+[^[:space:],()"]*'
+
+# Next to the output, so the rename is atomic; node_exporter only reads *.prom.
+tmp=$(mktemp "$OUTPUT.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+
+{
+  echo "# HELP dpkg_package_info An installed Debian package, with its source package."
+  echo "# TYPE dpkg_package_info gauge"
+  # Package names and versions can't hold quotes or backslashes, so no escaping is needed.
+  dpkg-query -W -f '${db:Status-Status}\t${Package}\t${Version}\t${source:Package}\t${source:Version}\n' |
+    awk -F'\t' '$1 == "installed" {
+      printf "dpkg_package_info{package=\"%s\",version=\"%s\",source=\"%s\",source_version=\"%s\"} 1\n", $2, $3, $4, $5
+    }'
+
+  echo "# HELP vm_binary_info A binary installed outside dpkg, with its version."
+  echo "# TYPE vm_binary_info gauge"
+  for binary in "$@"; do
+    command -v "$binary" > /dev/null || continue
+    if [[ $("$binary" --version 2>&1) =~ $version_re ]]; then
+      printf 'vm_binary_info{binary="%s",version="%s"} 1\n' "$binary" "${BASH_REMATCH[0]}"
+    else
+      echo "No version in $binary --version" >&2
+    fi
+  done
+} > "$tmp"
+
+mv "$tmp" "$OUTPUT"
