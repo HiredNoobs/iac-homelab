@@ -5,7 +5,7 @@ Terraform and Ansible for the homelab: the Talos Kubernetes clusters on the ``pr
 | Terraform root | Builds | Playbooks |
 | --- | --- | --- |
 | ``terraform/clusters/`` | The Talos clusters. | ``mgmt.yml`` on the management VMs, to copy the new talosconfigs. |
-| ``terraform/gitops/`` | The ``prx-999`` Debian VMs. | All of them, on the ``prx-999`` VMs. |
+| ``terraform/gitops/`` | The ``prx-999`` Debian VMs. | All but ``patch.yml``, on the ``prx-999`` VMs. |
 | ``terraform/vault/`` | Vault's config: secret engines, policies, auth (Kubernetes for ESO, Forgejo ID tokens for CI, an AppRole for the Vault backup). | None. |
 
 Each root has its own state (see [Terraform state](docs/terraform-state.md)) and its part of the Ansible inventory in ``playbooks/inventory/`` (the clusters root's is written by ``build.sh`` from its outputs). Nothing in the clusters root depends on ``prx-999``, so the clusters can always be rebuilt without it. Changes to the clusters root go through pull requests: CI plans them and applies them when merged (see [CI](docs/ci.md)).
@@ -25,13 +25,16 @@ export TF_VAR_pm_password="<password for that root's Proxmox>"
 # Vault must be unsealed, logs in with the root token from secrets/vault-keys.json (or VAULT_TOKEN)
 ./build.sh vault
 
+# patch.yml on the prx-999 VMs, one at a time, without Terraform
+./build.sh patch
+
 # The Proxmox hosts' playbooks, over SSH as root (no Terraform, no credentials)
 ./build.sh proxmox
 ```
 
 - ``--refresh-keys`` forgets the old SSH host keys, for rebuilt VMs.
 - Playbooks can be run on their own from ``playbooks/``. Tasks handling secrets hide their output, ``-e show_secrets=true`` shows it when debugging.
-- ``./build.sh gitops`` runs ``patch.yml``, which may reboot the Vault VM: unseal it afterwards.
+- ``./build.sh patch`` may reboot the Vault VM: unseal it afterwards.
 - Building from scratch: see [Rebuilding from nothing](docs/rebuild.md) (the order, and ``TF_VAR_metrics_server_enabled=false`` until vmagent is up).
 - Applying by hand: ``terraform apply -parallelism=1`` from ``terraform/<root>/``, with ``PG_CONN_STR`` set for clusters and vault (as ``state.sh`` builds it).
 
