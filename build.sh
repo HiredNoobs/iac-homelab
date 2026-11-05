@@ -6,7 +6,7 @@ HERE=$(dirname "$THIS")
 # shellcheck source=state.sh
 source "$HERE/state.sh"
 
-# Terraform root in terraform/, or proxmox (playbooks only).
+# Terraform root in terraform/, or patch or proxmox (playbooks only).
 ROOT=""
 
 # Passed to every ansible and ansible-playbook run.
@@ -25,7 +25,6 @@ GITOPS_LIMIT=gitops
 GITOPS_PLAYBOOKS=(
   readycheck.yml
   movein.yml
-  patch.yml
   monitoring.yml
   fail2ban.yml
   vault.yml
@@ -57,11 +56,12 @@ NAS_USER=terraform
 # -----------------------------------------------------
 
 function usage {
-  echo "Usage: $(basename "$0") <clusters|gitops|vault|proxmox> [--refresh-keys]"
+  echo "Usage: $(basename "$0") <clusters|gitops|vault|patch|proxmox> [--refresh-keys]"
   echo
   echo "  clusters        The prx-00x Talos clusters, then mgmt.yml on the management VMs."
   echo "  gitops          The prx-999 VMs (management, Vault, Forgejo, runners)."
   echo "  vault           Vault's config (secret engines, policies, auth), Vault must be unsealed."
+  echo "  patch           Only patch.yml on the prx-999 VMs, one at a time; may reboot them."
   echo "  proxmox         The Proxmox hosts' playbooks (node_exporter, rsyslog), no Terraform."
   echo "  --refresh-keys  Forget the hosts' old SSH host keys before connecting, for rebuilt VMs."
 }
@@ -157,7 +157,7 @@ function run_playbooks {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    clusters|gitops|vault|proxmox) ROOT="$1"; shift;;
+    clusters|gitops|vault|patch|proxmox) ROOT="$1"; shift;;
     --refresh-keys) ANSIBLE_ARGS+=(-e refresh_host_keys=true); shift;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown option: $1"; usage; exit 1;;
@@ -179,11 +179,15 @@ if [[ "$ROOT" == "clusters" || "$ROOT" == "vault" ]]; then
   export_pg_conn_str || exit 1
 fi
 
-[[ "$ROOT" != "proxmox" ]] && run_terraform
+case "$ROOT" in
+  clusters|gitops|vault) run_terraform;;
+esac
 
 case "$ROOT" in
   clusters) run_playbooks "$CLUSTERS_LIMIT" "${CLUSTERS_PLAYBOOKS[@]}";;
   gitops) run_playbooks "$GITOPS_LIMIT" "${GITOPS_PLAYBOOKS[@]}";;
+  # The gitops VMs' packages, one at a time.
+  patch) run_playbooks "$GITOPS_LIMIT" patch.yml;;
   proxmox)
     ANSIBLE_ARGS+=(-i "$PROXMOX_INVENTORY")
     run_playbooks "$PROXMOX_LIMIT" "${PROXMOX_PLAYBOOKS[@]}"
