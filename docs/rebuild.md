@@ -29,7 +29,7 @@ Nothing here is automated (no automation on the router or the NAS, the Proxmox h
 3. **Vault's config.** ``./build.sh vault`` (Forgejo must be up: Vault fetches its keys for ``auth/forgejo``). Then ``ansible-playbook backups.yml`` from ``playbooks/``, which needs the AppRole this created.
 4. **The clusters.** With ``prx-001``'s credentials and still ``TF_VAR_metrics_server_enabled=false``: ``./build.sh clusters``. It writes the talosconfigs to ``~/.talos/contexts/``, copies them to the management VM and runs ``context-setup`` there (``mgmt.yml``); run ``context-setup`` on the machine running the build too for its kube contexts. A rebuilt cluster has a new CA: export it into ``terraform/vault/clusters/`` ([Vault config](prx-999.md#vault-config)), merge it, and ``./build.sh vault`` again, or External Secrets Operator can't log in to Vault.
 5. **What runs on the clusters.** Flux, from iac-k8s: its ``docs/rebuild.md`` (bootstrap, the secrets it needs, restoring the volumes).
-6. **The metric servers.** Once Flux has deployed vmagent: ``./build.sh gitops`` and ``./build.sh clusters`` without ``TF_VAR_metrics_server_enabled``, so the Proxmox hosts send their metrics again, and ``ansible-playbook -i inventory-proxmox proxmox.yml`` from ``playbooks/`` for their node_exporter.
+6. **The metric servers.** Once Flux has deployed vmagent: ``./build.sh gitops`` and ``./build.sh clusters`` without ``TF_VAR_metrics_server_enabled``, so the Proxmox hosts send their metrics again, and ``./build.sh proxmox`` for their node_exporter.
 7. **Renovate.** The renovate repo's workflow runs once its secrets are set (its README); check its first run's log and the Dependency Dashboard issues.
 
 ## Checks
