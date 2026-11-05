@@ -6,10 +6,10 @@ HERE=$(dirname "$THIS")
 # shellcheck source=state.sh
 source "$HERE/state.sh"
 
-# Terraform root in terraform/.
+# Terraform root in terraform/, or proxmox (playbooks only).
 ROOT=""
 
-# Passed to every ansible-playbook run.
+# Passed to every ansible and ansible-playbook run.
 ANSIBLE_ARGS=()
 
 # Playbooks run after each root's Terraform, in order, limited to the hosts in LIMIT.
@@ -39,6 +39,14 @@ GITOPS_PLAYBOOKS=(
 
 # Vault's config has no hosts, nothing runs after it.
 
+# The Proxmox hosts have no root, the others configure what the API offers. Their playbooks use
+# their own inventory, so the plays for every host never reach them.
+PROXMOX_INVENTORY=inventory-proxmox
+PROXMOX_LIMIT=proxmox
+PROXMOX_PLAYBOOKS=(
+  proxmox.yml
+)
+
 # The clusters and vault roots keep their state in Postgres (state.sh). The gitops root's stays
 # here, in terraform/gitops/, with a copy on the NAS after each apply (smbclient, as NAS_USER).
 NAS_SHARE=//192.168.111.6/terraform-state  # nas_host in playbooks/group_vars/all.yml
@@ -49,11 +57,12 @@ NAS_USER=terraform
 # -----------------------------------------------------
 
 function usage {
-  echo "Usage: $(basename "$0") <clusters|gitops|vault> [--refresh-keys]"
+  echo "Usage: $(basename "$0") <clusters|gitops|vault|proxmox> [--refresh-keys]"
   echo
   echo "  clusters        The prx-00x Talos clusters, then mgmt.yml on the management VMs."
   echo "  gitops          The prx-999 VMs (management, Vault, Forgejo, runners)."
   echo "  vault           Vault's config (secret engines, policies, auth), Vault must be unsealed."
+  echo "  proxmox         The Proxmox hosts' playbooks (node_exporter, rsyslog), no Terraform."
   echo "  --refresh-keys  Forget the hosts' old SSH host keys before connecting, for rebuilt VMs."
 }
 
@@ -125,7 +134,7 @@ function run_playbooks {
   cd "$HERE/playbooks" || exit 1
 
   # e.g. no management VM yet, while it's being replaced.
-  if ! ansible "$limit" --list-hosts 2> /dev/null | grep -q "^    [^ ]"; then
+  if ! ansible "$limit" --list-hosts "${ANSIBLE_ARGS[@]}" 2> /dev/null | grep -q "^    [^ ]"; then
     echo "No hosts in '$limit', skipping the playbooks."
     cd "$HERE" || exit 1
     return 0
@@ -148,7 +157,7 @@ function run_playbooks {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    clusters|gitops|vault) ROOT="$1"; shift;;
+    clusters|gitops|vault|proxmox) ROOT="$1"; shift;;
     --refresh-keys) ANSIBLE_ARGS+=(-e refresh_host_keys=true); shift;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown option: $1"; usage; exit 1;;
@@ -166,13 +175,17 @@ if [[ "$ROOT" == "vault" && -z "${VAULT_TOKEN:-}" ]]; then
   export VAULT_TOKEN
 fi
 
-if [[ "$ROOT" != "gitops" ]]; then
+if [[ "$ROOT" == "clusters" || "$ROOT" == "vault" ]]; then
   export_pg_conn_str || exit 1
 fi
 
-run_terraform
+[[ "$ROOT" != "proxmox" ]] && run_terraform
 
 case "$ROOT" in
   clusters) run_playbooks "$CLUSTERS_LIMIT" "${CLUSTERS_PLAYBOOKS[@]}";;
   gitops) run_playbooks "$GITOPS_LIMIT" "${GITOPS_PLAYBOOKS[@]}";;
+  proxmox)
+    ANSIBLE_ARGS+=(-i "$PROXMOX_INVENTORY")
+    run_playbooks "$PROXMOX_LIMIT" "${PROXMOX_PLAYBOOKS[@]}"
+    ;;
 esac

@@ -1,6 +1,8 @@
 ---
-# node_exporter and the package versions on the Proxmox hosts, as on the VMs. Run from playbooks/
-# with the hosts' own inventory: ansible-playbook -i inventory-proxmox proxmox.yml
+# What the Proxmox hosts' API doesn't configure: node_exporter and the package versions, as on
+# the VMs, and the journal to the cluster's syslog relay. Run by ./build.sh proxmox, or from
+# playbooks/ with the hosts' own inventory:
+#   ansible-playbook -i inventory-proxmox proxmox.yml
 # One host at a time: a failure stops it before the next.
 - hosts: proxmox
   gather_facts: false
@@ -8,3 +10,4 @@
   roles:
     - common
     - monitoring
+    - rsyslog

@@ -24,6 +24,9 @@ export TF_VAR_pm_password="<password for that root's Proxmox>"
 
 # Vault must be unsealed, logs in with the root token from secrets/vault-keys.json (or VAULT_TOKEN)
 ./build.sh vault
+
+# The Proxmox hosts' playbooks, over SSH as root (no Terraform, no credentials)
+./build.sh proxmox
 ```
 
 - ``--refresh-keys`` forgets the old SSH host keys, for rebuilt VMs.
