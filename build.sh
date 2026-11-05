@@ -62,7 +62,7 @@ function usage {
   echo "  clusters        The prx-00x Talos clusters, then mgmt.yml on the management VMs."
   echo "  gitops          The prx-999 VMs (management, Vault, Forgejo, runners)."
   echo "  vault           Vault's config (secret engines, policies, auth), Vault must be unsealed."
-  echo "  proxmox         The Proxmox hosts' playbooks (node_exporter), no Terraform."
+  echo "  proxmox         The Proxmox hosts' playbooks (node_exporter, rsyslog), no Terraform."
   echo "  --refresh-keys  Forget the hosts' old SSH host keys before connecting, for rebuilt VMs."
 }
 

@@ -1,0 +1,21 @@
+# The host's journal to the cluster's syslog relay (files/rsyslog.conf).
+- name: Install rsyslog
+  apt:
+    name: rsyslog
+    state: present
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Configure rsyslog
+  copy:
+    src: rsyslog.conf
+    dest: /etc/rsyslog.conf
+    mode: "0644"
+    validate: /usr/sbin/rsyslogd -N1 -f %s
+  notify: restart rsyslog
+
+- name: Enable rsyslog
+  service:
+    name: rsyslog
+    state: started
+    enabled: yes
