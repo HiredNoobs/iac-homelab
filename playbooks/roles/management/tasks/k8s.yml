@@ -1,3 +1,14 @@
+# The versions tools-bin pins (mgmt.yml updates it first), each installed only when it differs.
+# The contexts are only redone below, when they need it.
+- name: Install the pinned cluster tools
+  become_user: "{{ management_username }}"
+  command: "/home/{{ management_username }}/tools-bin/bin/context-setup --tools"
+  # Its own bin first, where it checks the installed versions.
+  environment:
+    PATH: "/home/{{ management_username }}/tools-bin/bin:/usr/local/bin:/usr/bin:/bin"
+  register: management_tools
+  changed_when: "'Installing' in management_tools.stderr"
+
 # The talosconfigs are written by Terraform on the Ansible controller (talosconfigs in the
 # generated inventory), context-setup generates the kubeconfigs from them on this host.
 - name: Ensure talos contexts directory exists

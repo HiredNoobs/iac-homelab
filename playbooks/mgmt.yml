@@ -2,5 +2,12 @@
 - hosts: mgmt
   become: yes
   gather_facts: false
+  # tools-bin up to date first (movein's checkout and setup), so the management role installs the
+  # cluster tool versions it pins.
+  pre_tasks:
+    - name: Update tools-bin
+      include_role:
+        name: movein
+        tasks_from: setup_user
   roles:
     - management

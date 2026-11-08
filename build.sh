@@ -15,7 +15,8 @@ ANSIBLE_ARGS=()
 # Playbooks run after each root's Terraform, in order, limited to the hosts in LIMIT.
 #
 # The clusters root has no hosts of its own, mgmt.yml copies its talosconfigs to the management
-# VMs (in the gitops root) and refreshes their kubeconfigs.
+# VMs (in the gitops root), refreshes their kubeconfigs and installs tools-bin's pinned cluster
+# tools.
 CLUSTERS_LIMIT=mgmt
 CLUSTERS_PLAYBOOKS=(
   mgmt.yml
