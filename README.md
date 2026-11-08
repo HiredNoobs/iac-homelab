@@ -4,7 +4,7 @@ Terraform and Ansible for the homelab: the Talos Kubernetes clusters on the ``pr
 
 | Terraform root | Builds | Playbooks |
 | --- | --- | --- |
-| ``terraform/clusters/`` | The Talos clusters. | ``mgmt.yml`` on the management VMs, to copy the new talosconfigs. |
+| ``terraform/clusters/`` | The Talos clusters. | ``mgmt.yml`` on the management VMs, to copy the new talosconfigs and install tools-bin's pinned cluster tools. |
 | ``terraform/gitops/`` | The ``prx-999`` Debian VMs. | All but ``patch.yml``, on the ``prx-999`` VMs. |
 | ``terraform/vault/`` | Vault's config: secret engines, policies, auth (Kubernetes for ESO, Forgejo ID tokens for CI, an AppRole for the Vault backup). | None. |
 
