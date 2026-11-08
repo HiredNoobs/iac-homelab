@@ -72,8 +72,46 @@
       "prBodyNotes": ["Applied with `forgejo-runner.yml`."]
     },
     {
+      "description": "Vault itself (the vault role's pin), not the Terraform provider of the same name",
+      "matchManagers": ["custom.regex"],
       "matchPackageNames": ["hashicorp/vault"],
       "prBodyNotes": ["Check the zip's SHA256SUMS signature against HashiCorp's key, take a Raft snapshot, then `vault.yml`. Bump `VAULT_VERSION` (the client) in tools-bin's `context-setup` to the same version too, the management VMs get it with `mgmt.yml`."]
+    },
+    {
+      "description": "Checks before and after merging and applying (prBodyNotes add up across rules)",
+      "matchPackageNames": ["siderolabs/talos"],
+      "prBodyNotes": ["Before (each node is drained and rebooted): Grafana Storage → Longhorn with no degraded volumes and every node schedulable (a drain waits on a volume's last healthy copy), Control plane → etcd healthy, then `deployment longhorn_backup`. After: `kubectl get nodes -o wide` on the new version, Longhorn volumes healthy again, `deployment status falco` with a pod on every node, `flux get kustomizations -A` Ready."]
+    },
+    {
+      "matchPackageNames": ["kubernetes/kubernetes"],
+      "prBodyNotes": ["After: `kubectl get nodes -o wide` on the new version, Grafana Control plane → API server and etcd healthy, `flux get kustomizations -A` Ready, KubeDeprecatedAPIUsed quiet."]
+    },
+    {
+      "matchPackageNames": ["forgejo/forgejo"],
+      "prBodyNotes": ["After `forgejo.yml`: the new version in Forgejo's footer, `flux get sources git -A` and `flux get kustomizations -A` Ready (Flux pulls iac-k8s from Forgejo), a lint run passes (the runner reconnects), the push mirrors to GitHub still sync."]
+    },
+    {
+      "matchPackageNames": ["forgejo/runner", "docker.io/library/node"],
+      "prBodyNotes": ["After `forgejo-runner.yml`: a lint run on any PR is picked up and passes."]
+    },
+    {
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["hashicorp/vault"],
+      "prBodyNotes": ["After `vault.yml`: unseal it (`vault-unseal.yml`), `vault status` unsealed, `vsecret ls`, `kubectl get externalsecrets -A` still SecretSynced, Grafana Services → Hashicorp Vault; VaultSealed and VaultDown quiet."]
+    },
+    {
+      "description": "The Terraform providers",
+      "matchManagers": ["terraform"],
+      "matchDepTypes": ["provider", "required_provider"],
+      "prBodyNotes": ["A provider bump should change nothing: label this PR and read the clusters plan. CI never plans the gitops and vault roots, run `terraform plan` in those by hand before merging."]
+    },
+    {
+      "matchPackageNames": ["prometheus/node_exporter"],
+      "prBodyNotes": ["Applied with `monitoring.yml` (the VMs) and `./build.sh proxmox` (the Proxmox hosts). After: Grafana Hosts → Node Exporter Full fills for every host, TargetDown quiet."]
+    },
+    {
+      "matchPackageNames": ["vectordotdev/vector"],
+      "prBodyNotes": ["Applied with `monitoring.yml`. After: Grafana Monitoring → Log pipeline still has every VM's journal, VectorSendFailing quiet."]
     },
     {
       "description": "Lint tooling only",
