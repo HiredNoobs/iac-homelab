@@ -54,7 +54,7 @@
       "description": "Talos and Kubernetes: one minor version at a time, each applied when merged",
       "matchPackageNames": ["siderolabs/talos", "kubernetes/kubernetes"],
       "separateMultipleMinor": true,
-      "prBodyNotes": ["Upgrades the cluster when merged (the clusters workflow applies it, one node at a time): read the plan on this PR first. Bump talosctl/kubectl in tools-bin's `context-setup` too, and for Kubernetes `KUBERNETES_VERSION` (and the schemas commit) in iac-k8s's lint.yml. Check the Talos support matrix first."]
+      "prBodyNotes": ["Upgrades the cluster when merged (the clusters workflow applies it, one node at a time): read the plan on this PR first. Bump talosctl/kubectl in tools-bin's `context-setup` too (the management VMs get them with `mgmt.yml`), and for Kubernetes `KUBERNETES_VERSION` (and the schemas commit) in iac-k8s's lint.yml. Check the Talos support matrix first."]
     },
     {
       "matchPackageNames": ["forgejo/forgejo"],
@@ -73,7 +73,7 @@
     },
     {
       "matchPackageNames": ["hashicorp/vault"],
-      "prBodyNotes": ["Check the zip's SHA256SUMS signature against HashiCorp's key, take a Raft snapshot, then `vault.yml`."]
+      "prBodyNotes": ["Check the zip's SHA256SUMS signature against HashiCorp's key, take a Raft snapshot, then `vault.yml`. Bump `VAULT_VERSION` (the client) in tools-bin's `context-setup` to the same version too, the management VMs get it with `mgmt.yml`."]
     },
     {
       "description": "Lint tooling only",
