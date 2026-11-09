@@ -70,7 +70,7 @@ variable "vm_datastore" {
 # renovate: datasource=github-releases depName=siderolabs/talos
 variable "talos_version" {
   type    = string
-  default = "v1.14.4"
+  default = "v1.14.5"
 }
 
 # Machine config contract, keep this at the version the clusters were created with.
