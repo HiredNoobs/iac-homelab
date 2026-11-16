@@ -263,6 +263,21 @@ data "talos_machine_configuration" "node" {
         kind          = "KubeAuditPolicyConfig"
         configuration = yamldecode(file("${path.module}/audit-policy.yaml"))
       }),
+      # No Flannel or kube-proxy: iac-k8s' Cilium is the network and handles Services, so a new
+      # cluster's nodes stay NotReady until Cilium is installed (iac-k8s' docs/rebuild.md).
+      # Control planes only, they deploy Talos' manifests (Talos refuses KubeProxyConfig on
+      # workers). Talos doesn't delete what it deployed before: `talosctl upgrade-k8s --to <the
+      # current version>` prunes it.
+      yamlencode({
+        apiVersion = "v1alpha1"
+        kind       = "KubeFlannelCNIConfig"
+        "$patch"   = "delete"
+      }),
+      yamlencode({
+        apiVersion = "v1alpha1"
+        kind       = "KubeProxyConfig"
+        enabled    = false
+      }),
     ] : [],
     # etcd's metrics on their own plain HTTP port (2381); the client port
     # still requires a client certificate.
