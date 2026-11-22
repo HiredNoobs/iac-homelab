@@ -181,11 +181,15 @@ data "talos_machine_configuration" "node" {
           }
         }
       }),
+      # The node's own address as its Kubernetes InternalIP. Unset, Talos picks one outside the
+      # cluster's pod subnets, which can be a CNI's own address (Cilium's cilium_host, from a pod
+      # range Talos doesn't know about).
       yamlencode(merge(
         {
           apiVersion = "v1alpha1"
           kind       = "KubeNodeConfig"
           labels     = local.labels[each.key]
+          nodeIP     = { validSubnets = ["${local.ips[each.key]}/32"] }
         },
         local.roles[each.key] == "controlplane" && local.schedule_on_control_planes ? {
           taints = { "node-role.kubernetes.io/control-plane" = { "$patch" = "delete" } }
@@ -241,6 +245,16 @@ data "talos_machine_configuration" "node" {
         kind       = "Layer2VIPConfig"
         name       = var.vip
         link       = "net0"
+      }),
+      # etcd's peer URL on the node's own address, for the same reason as the kubelet's above:
+      # Talos keeps the member's peer URL in line with it while etcd runs. It still listens on
+      # every address (listenSubnets unset).
+      yamlencode({
+        cluster = {
+          etcd = {
+            advertisedSubnets = ["${local.ips[each.key]}/32"]
+          }
+        }
       }),
       # Trimmed from Talos' default (Metadata for everything), see the file. A change restarts
       # kube-apiserver on each control plane.
