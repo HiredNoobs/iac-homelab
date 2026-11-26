@@ -3,8 +3,8 @@
 # data was last used with when restoring a snapshot, upgrade afterwards. Keep the client
 # (VAULT_VERSION in tools-bin's context-setup) in line.
 # renovate: datasource=github-releases depName=hashicorp/vault extractVersion=^v(?<version>.+)$
-vault_version: "2.2.1"
-vault_sha256: "079435de8ff146bdec4cdbe3be71d672ef4e59e4df6af0f2dba672e71be21a68"
+vault_version: "2.2.2"
+vault_sha256: "5700edf139113609962fe371af7d2a53de8ecb720d545dc39b43de204515d3c4"
 
 # The name clients use, also the certbot certificate's name. Vault listens on 443 so
 # VAULT_ADDR=https://vault.<domain> (tools-bin) works without a port.
